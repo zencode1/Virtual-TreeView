@@ -70,6 +70,11 @@ type
     function GetControlsAlignment: TAlignment; virtual; abstract;
     function PrepareDottedBrush(CurrentDottedBrush: TBrush; Bits: Pointer; const BitsLinesCount: Word): TBrush; virtual; abstract;
     function GetSelectedCount(): Integer; virtual; abstract;
+    /// <summary>
+    /// multicell support. How many cells are selected?
+    /// </summary>
+    function GetSelectedCellCount(): Integer; virtual; abstract;
+    procedure MarkCutCopyCells; virtual; abstract;
     procedure MarkCutCopyNodes; virtual; abstract;
     function GetSortedCutCopySet(Resolve: Boolean): TNodeArray; virtual; abstract;
     function GetSortedSelection(Resolve: Boolean): TNodeArray; virtual; abstract;
