@@ -275,7 +275,7 @@ begin
         cBorderColor :
           TreeView.RedrawWindow(nil, 0, RDW_FRAME or RDW_INVALIDATE or RDW_NOERASE or RDW_NOCHILDREN)
       else
-        {$IFDEF VT_VCL}if not (TVirtualTreeStates.tsPainting in TreeView.TreeStates) then{$ENDIF} // See issue #1186
+        {$IFDEF VT_VCL}if not (tsPainting in TreeView.TreeStates) then{$ENDIF} // See issue #1186
           TreeView.Invalidate;
       end;//case
     end;// if

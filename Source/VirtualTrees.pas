@@ -1369,7 +1369,7 @@ begin
   Result := inherited DoCreateEditor(Node, Column);
   // Enable generic label editing support if the application does not have own editors.
   if Result = nil then
-    Result := TBaseEditLink.Create;
+    Result := {$IFDEF VT_VCL}TStringEditLink{$ELSE}TBaseEditLink{$ENDIF}.Create;
 end;
 
 //----------------------------------------------------------------------------------------------------------------------

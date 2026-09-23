@@ -13,6 +13,8 @@ uses
   Vcl.Controls;
 
 type
+  IDataObject = WinApi.ActiveX.IDataObject;
+
   // IDataObject.SetData support
   TInternalStgMedium = packed record
     Format: TClipFormat;
@@ -61,6 +63,7 @@ type
 implementation
 
 {$IFDEF VT_VCL}
+uses
   VirtualTrees.ClipBoard,
   VirtualTrees.DragnDrop,
   VirtualTrees.BaseTree;

@@ -136,6 +136,22 @@ type
     Tree: TBaseVirtualTree;
   end;
 
+{$IFDEF VT_VCL}
+  // ----- OLE drag'n drop handling
+
+  IVTDragManager = interface(IUnknown)
+    ['{C4B25559-14DA-446B-8901-0C879000EB16}']
+    procedure ForceDragLeave; stdcall;
+    function GetDataObject: IDataObject; stdcall;
+    function GetDragSource: TBaseVirtualTree; stdcall;
+    function GetIsDropTarget: Boolean; stdcall;
+
+    property DataObject: IDataObject read GetDataObject;
+    property DragSource: TBaseVirtualTree read GetDragSource;
+    property IsDropTarget: Boolean read GetIsDropTarget;
+  end;
+{$ENDIF}
+
   PVTHintData = ^TVTHintData;
   TVTHintData = record
     Tree: TBaseVirtualTree;
@@ -1064,7 +1080,7 @@ type
     procedure DoScroll(DeltaX, DeltaY: TDimension); virtual;
     function DoSetOffsetXY(Value: TPoint; Options: TScrollUpdateOptions; ClipRect: PRect = nil): Boolean; virtual;
     procedure DoShowScrollBar(Bar: Integer; Show: Boolean); virtual;
-    procedure DoStartDrag(var DragObject: TVTDragDataObject); override;
+    procedure DoStartDrag(var DragObject: TDragObject); override;
     procedure DoStartOperation(OperationKind: TVTOperationKind); virtual;
     procedure DoStateChange(Enter: TVirtualTreeStates; Leave: TVirtualTreeStates = []); override;
     procedure DoStructureChange(Node: PVirtualNode; Reason: TChangeReason); virtual;
@@ -16199,6 +16215,7 @@ begin
     DeleteObject(UpdateRegion);
     DeleteObject(DragRegion);
     DeleteObject(VisibleTreeRegion);
+    end;
   end;
 {$ENDIF}
 end;

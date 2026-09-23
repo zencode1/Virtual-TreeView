@@ -4,7 +4,7 @@ interface
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
-  FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, VirtualTrees, VirtualTrees.FMX, FMX.StdCtrls, FMX.Edit,
+  FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, VirtualTrees, VirtualTrees.Types, VirtualTrees.FMX, FMX.StdCtrls, FMX.Edit,
   FMX.Controls.Presentation;
 
 type

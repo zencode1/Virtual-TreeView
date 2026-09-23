@@ -133,6 +133,7 @@ uses
   , System.Variants
   , System.Math
   , Vcl.Forms
+  , VirtualTrees.Types
   ;
 {$ENDIF}
 type

@@ -20,9 +20,6 @@ uses
 {$ELSE}
 uses
     Winapi.Windows
-  , Vcl.Graphics
-  , Vcl.Forms
-  , Vcl.Controls
   , VirtualTrees
   , VirtualTrees.Classes
   ;

@@ -65,7 +65,7 @@ type
   );
 
 
-procedure AlphaBlend(Source, Destination: TCanvas; R: TRect; Target: TPoint; Mode: TBlendMode; ConstantAlpha: Integer; Bias: {$IFDEF VT_FMX}TAlphaColor{$ELSE}Integer{$ENDIF});
+procedure AlphaBlend(Source, Destination: {$IFDEF VT_FMX}TCanvas{$ELSE}HDC{$ENDIF}; R: TRect; Target: TPoint; Mode: TBlendMode; ConstantAlpha: Integer; Bias: {$IFDEF VT_FMX}TAlphaColor{$ELSE}Integer{$ENDIF});
 {$IFDEF VT_VCL}
 function GetRGBColor(Value: TColor): DWORD;
 procedure PrtStretchDrawDIB(Canvas: TCanvas; DestRect: TRect; ABitmap: TBitmap);
@@ -538,7 +538,7 @@ end;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-function GetBitmapBitsFromDeviceContext(ACanvas: TCanvas; var Width, Height: Integer): Pointer;
+function GetBitmapBitsFromDeviceContext(DC: HDC; var Width, Height: Integer): Pointer;
 
 // Helper function used to retrieve the bitmap selected into the given device context. If there is a bitmap then
 // the function will return a pointer to its bits otherwise nil is returned.
@@ -553,7 +553,7 @@ begin
   Width := 0;
   Height := 0;
 
-  Bitmap := GetCurrentObject(ACanvas.Handle, OBJ_BITMAP);
+  Bitmap := GetCurrentObject(DC, OBJ_BITMAP);
   if Bitmap <> 0 then
   begin
     if GetObject(Bitmap, SizeOf(DIB), @DIB) = SizeOf(DIB) then
@@ -1165,7 +1165,7 @@ begin
   end;
 end;
 {$ELSE}
-procedure AlphaBlend(Source, Destination: TCanvas; R: TRect; Target: TPoint; Mode: TBlendMode; ConstantAlpha, Bias: Integer);
+procedure AlphaBlend(Source, Destination: HDC; R: TRect; Target: TPoint; Mode: TBlendMode; ConstantAlpha, Bias: Integer);
 
 // Optimized alpha blend procedure using MMX instructions to perform as quick as possible.
 // For this procedure to work properly it is important that both source and target bitmap use the 32 bit color format.

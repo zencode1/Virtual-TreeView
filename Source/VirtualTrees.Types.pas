@@ -21,6 +21,7 @@ uses
 uses
     WinApi.ActiveX
   , Winapi.Windows
+  , Winapi.Messages
   , System.Types
   , System.Classes
   , System.UITypes
@@ -29,6 +30,7 @@ uses
   , Vcl.GraphUtil
   , Vcl.Themes
   , Vcl.Graphics
+  , Vcl.ImgList
   ;
 {$ENDIF}
 
@@ -1141,9 +1143,10 @@ uses
   ;
 {$ELSE}
 uses
-    VirtualTrees
-  , VirtualTrees.StyleHooks,
-  , VirtualTrees.BaseTree,
+    System.TypInfo
+  , VirtualTrees
+  , VirtualTrees.StyleHooks
+  , VirtualTrees.BaseTree
   , VirtualTrees.BaseAncestorVcl{to eliminate H2443 about inline expanding}
   ;
 {$ENDIF}

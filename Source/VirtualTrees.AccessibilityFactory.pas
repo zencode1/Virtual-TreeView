@@ -50,6 +50,7 @@ uses
 uses
     System.Classes
   , Winapi.oleacc
+  , Vcl.Controls
   , VirtualTrees.BaseTree;
 {$ENDIF}
 

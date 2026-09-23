@@ -55,7 +55,7 @@ type
 {$ENDIF}
   protected
     FRefLink: IVTEditLink;
-    FLink: TBaseEditLink;
+    FLink: {$IFDEF VT_VCL}TStringEditLink{$ELSE}TBaseEditLink{$ENDIF};
     procedure AutoAdjustSize; virtual;
 {$IFDEF VT_VCL}
     function CalcMinHeight: Integer; virtual;
@@ -64,7 +64,7 @@ type
     procedure KeyPress(var Key : Char); override;
 {$ENDIF}
   public
-    constructor Create(Link: TBaseEditLink); reintroduce;
+    constructor Create(Link: {$IFDEF VT_VCL}TStringEditLink{$ELSE}TBaseEditLink{$ENDIF}); reintroduce;
 {$IFDEF VT_VCL}
     procedure ClearLink;
     procedure ClearRefLink;
@@ -221,7 +221,7 @@ type
 
 // Implementation of a generic node caption editor.
 
-constructor TVTEdit.Create(Link : TBaseEditLink);
+constructor TVTEdit.Create(Link : {$IFDEF VT_VCL}TStringEditLink{$ELSE}TBaseEditLink{$ENDIF});
 
 begin
   inherited Create(nil);

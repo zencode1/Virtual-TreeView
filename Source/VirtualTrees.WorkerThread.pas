@@ -13,6 +13,7 @@ uses
 {$ELSE}
 uses
     System.Classes
+  , VirtualTrees.Types
   , VirtualTrees.BaseTree;
 {$ENDIF}
 
@@ -23,6 +24,7 @@ type
     FCurrentTree: TBaseVirtualTree;
     FWaiterList: TThreadList;
     FRefCount: Integer;
+    FWorkEvent: THandle;
     class procedure EnsureCreated();
     class procedure Dispose(CanBlock: Boolean);
     procedure WaitForValidationTermination(Tree: TBaseVirtualTree);

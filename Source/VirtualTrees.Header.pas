@@ -26,7 +26,7 @@ uses
 {$ELSE}
     WinApi.Windows
   , WinApi.Messages
-    System.Classes
+  , System.Classes
   , System.Types
   , System.Generics.Collections
   , System.UITypes
@@ -286,7 +286,7 @@ type
     function GetVisibleFixedWidth: TDimension;
     function IsValidColumn(Column: TColumnIndex): Boolean;
     procedure LoadFromStream(const Stream: TStream; Version: Integer);
-    procedure PaintHeader(TargetCanvas: TCanvas; R: TRect; HOffset: TDimension); overload; virtual;
+    procedure PaintHeader({$IFDEF VT_FMX}TargetCanvas: TCanvas{$ELSE}DC: HDC{$ENDIF}; R: TRect; HOffset: TDimension); overload; virtual;
     procedure PaintHeader(TargetCanvas: TCanvas; R: TRect; const Target: TPoint; RTLOffset: TDimension = 0); overload; virtual;													 
     procedure SaveToStream(const Stream: TStream);
     procedure EndUpdate(); override;
@@ -3171,7 +3171,7 @@ begin
 
   if UseText then
   begin
-    GetTextExtentPoint32W(PaintInfo.TargetCanvas, PWideChar(FText), Length(FText), TextSize);
+    GetTextExtentPoint32W(PaintInfo.TargetCanvas{$IFDEF VT_VCL}.Handle{$ENDIF}, {$IFDEF VT_VCL}PWideChar{$ENDIF}(FText), Length(FText), TextSize);
     Inc(TextSize.cx, 2);
   end
   else
@@ -4548,7 +4548,7 @@ begin
       ACanvas.Fill.Color:= Header.Tree.Colors.HeaderFontColor;
 	    DrawTextW(ACanvas, Caption, Length(Caption), Bounds, DrawFormat);
 {$ELSE}
-      SetTextColor(ACanvas.Handle, ColorToRGB(FHeader.Treeview.FColors.HeaderFontColor));
+      SetTextColor(ACanvas.Handle, ColorToRGB(TreeViewControl.Colors.HeaderFontColor));
 	    Winapi.Windows.DrawTextW(ACanvas.Handle, PWideChar(Caption), Length(Caption), Bounds, DrawFormat);
 {$ENDIF}
     end
@@ -4577,13 +4577,13 @@ begin
 {$IFDEF VT_FMX}
       ACanvas.Fill.Color:= FHeader.Tree.Colors.HeaderHotColor
 {$ELSE}
-      SetTextColor(ACanvas.Handle, ColorToRGB(FHeader.Treeview.FColors.HeaderHotColor))
+      SetTextColor(ACanvas.Handle, ColorToRGB(TreeViewControl.Colors.HeaderHotColor))
 {$ENDIF}
     else
 {$IFDEF VT_FMX}
       ACanvas.Fill.Color:= FHeader.Tree.Colors.HeaderFontColor;
 {$ELSE}
-      SetTextColor(ACanvas.Handle, ColorToRGB(FHeader.Treeview.FColors.HeaderFontColor));
+      SetTextColor(ACanvas.Handle, ColorToRGB(TreeViewControl.Colors.HeaderFontColor));
 {$ENDIF}
 {$IFDEF VT_FMX}
     DrawTextW(ACanvas, Caption, Length(Caption), Bounds, DrawFormat);
@@ -5143,7 +5143,6 @@ begin
       finally
 {$IFDEF VT_VCL}
         ReleaseDC(Handle, DC);
-		DC.Free;
 {$ENDIF}
       end;
     end;
@@ -5586,7 +5585,7 @@ end;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-procedure TVirtualTreeColumns.PaintHeader(TargetCanvas: TCanvas; R: TRect; HOffset: TDimension);
+procedure TVirtualTreeColumns.PaintHeader({$IFDEF VT_FMX}TargetCanvas: TCanvas{$ELSE}DC: HDC{$ENDIF}; R: TRect; HOffset: TDimension);
 
 // Backward compatible header paint method. This method takes care of visually moving floating columns
 

@@ -4,7 +4,7 @@ uses
   System.StartUpCopy,
   FMX.Forms,
   Main in 'Main.pas' {MainForm},
-  VirtualTrees in '..\..\..\..\Source\VirtualTrees.pas';
+  VirtualTrees in '..\..\..\Source\VirtualTrees.pas';
 
 {$R *.res}
 

@@ -18,6 +18,7 @@ uses
 uses
     System.Types
   , System.Classes
+  , Vcl.Themes
   , VirtualTrees.Types
   , VirtualTrees
   , VirtualTrees.BaseTree;
