@@ -2363,13 +2363,16 @@ begin
   if HandleAllocated then
     DestroyWindowHandle;
 
+{$IFNDEF VT_FMX}
   // Release FDottedBrush in case WM_NCDESTROY hasn't been triggered.
+  // Not for FMX: an FMX brush owns its bitmap, and TVTBaseAncestorFMX.Destroy frees the dotted brushes.
   if Assigned(DottedBrushTreeLines) then
   begin
     DottedBrushTreeLines.Bitmap.Free();
     DottedBrushTreeLines.Free;
     DottedBrushTreeLines:= nil;
   end;
+{$ENDIF VT_FMX}
 
   FHeader.Free;
   FHeader := nil; // Do not use FreeAndNil() before checking issue #497
