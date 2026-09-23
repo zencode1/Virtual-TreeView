@@ -56,6 +56,7 @@ uses
 
 type
   IVTAccessibleProvider = interface
+    ['{8B76176B-C1F2-4C5C-99B4-2444FABE495C}']
     function CreateIAccessible(ATree: TBaseVirtualTree): IAccessible;
   end;
 
@@ -76,7 +77,7 @@ type
     procedure UnRegisterAccessibleProvider(const AProvider: IVTAccessibleProvider);
   end;
 
-  
+
 implementation
 
 { TVTAccessibilityFactory }
@@ -92,7 +93,7 @@ function TVTAccessibilityFactory.CreateIAccessible(ATree: TCustomControl): IAcce
 var
   I: Integer;
   TmpIAccessible: IAccessible;
-  lTree: TBaseVirtualTree;							  
+  lTree: TBaseVirtualTree;
 // returns an IAccessible.
 // 1. If the Accessible property of the passed-in tree is nil,
 // the first registered element will be returned.
@@ -104,7 +105,7 @@ var
 // The index for these should all be greater than 0, e g the IAccessible for the tree itself should always be registered first, then any IAccessible items.
 begin
   Result := nil;
-  lTree := (ATree as TBaseVirtualTree);									   
+  lTree := (ATree as TBaseVirtualTree);
   if lTree <> nil then
   begin
     if lTree.Accessible = nil then

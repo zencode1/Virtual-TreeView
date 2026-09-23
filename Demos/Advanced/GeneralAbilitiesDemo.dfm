@@ -10,10 +10,8 @@ object GeneralForm: TGeneralForm
   Font.Name = 'Tahoma'
   Font.Style = []
   KeyPreview = True
-  OldCreateOrder = False
   ShowHint = True
   OnCreate = FormCreate
-  PixelsPerInch = 96
   TextHeight = 13
   object VST2: TVirtualStringTree
     Left = 0
@@ -23,6 +21,7 @@ object GeneralForm: TGeneralForm
     Align = alClient
     AutoExpandDelay = 300
     BiDiMode = bdLeftToRight
+    BottomSpace = 3
     ButtonFillMode = fmWindowColor
     ClipboardFormats.Strings = (
       'HTML Format'
@@ -34,8 +33,7 @@ object GeneralForm: TGeneralForm
     Colors.HotColor = clBlack
     Colors.UnfocusedSelectionBorderColor = clBtnShadow
     Ctl3D = True
-    CustomCheckImages = TreeImages
-    DefaultNodeHeight = 20
+    DefaultNodeHeight = 19
     DragCursor = crHelp
     DragMode = dmAutomatic
     DrawSelectionMode = smBlendedRectangle
@@ -52,6 +50,7 @@ object GeneralForm: TGeneralForm
     Header.Style = hsFlatButtons
     HotCursor = crHandPoint
     Images = TreeImages
+    Margin = 8
     ParentBiDiMode = False
     ParentCtl3D = False
     ParentFont = False
@@ -59,15 +58,15 @@ object GeneralForm: TGeneralForm
     ScrollBarOptions.VerticalIncrement = 19
     TabOrder = 0
     TreeOptions.AnimationOptions = [toAnimatedToggle]
-    TreeOptions.AutoOptions = [toAutoDropExpand, toAutoScroll, toAutoSpanColumns, toAutoTristateTracking, toAutoHideButtons, toDisableAutoscrollOnFocus, toAutoChangeScale]
+    TreeOptions.AutoOptions = [toAutoDropExpand, toAutoScroll, toAutoSpanColumns, toAutoTristateTracking, toAutoHideButtons, toAutoChangeScale]
     TreeOptions.MiscOptions = [toAcceptOLEDrop, toCheckSupport, toEditable, toInitOnSave, toToggleOnDblClick, toWheelPanning, toEditOnClick]
     TreeOptions.PaintOptions = [toHideSelection, toHotTrack, toShowButtons, toShowDropmark, toShowRoot, toShowTreeLines, toShowVertGridLines, toThemeAware, toUseBlendedImages, toFullVertGridLines, toUseBlendedSelection]
-    TreeOptions.SelectionOptions = [toExtendedFocus, toMiddleClickSelect, toMultiSelect, toRightClickSelect]
+    TreeOptions.SelectionOptions = [toExtendedFocus, toMiddleClickSelect, toMultiSelect, toRightClickSelect, toSelectNextNodeOnRemoval]
     TreeOptions.StringOptions = [toSaveCaptions, toShowStaticText, toAutoAcceptEditChange]
     OnDragOver = VST2DragOver
     OnFocusChanging = VST2FocusChanging
     OnFreeNode = VST2FreeNode
-    OnGetText = VST2GetText
+    OnGetCellText = VST2GetCellText
     OnPaintText = VST2PaintText
     OnGetImageIndexEx = VST2GetImageIndexEx
     OnGetNodeDataSize = VST2GetNodeDataSize
@@ -77,6 +76,8 @@ object GeneralForm: TGeneralForm
     OnKeyDown = VST2KeyDown
     OnNewText = VST2NewText
     OnStateChange = VST2StateChange
+    Touch.InteractiveGestures = [igPan, igPressAndTap]
+    Touch.InteractiveGestureOptions = [igoPanSingleFingerHorizontal, igoPanSingleFingerVertical, igoPanInertia, igoPanGutter, igoParentPassthrough]
     Columns = <
       item
         Hint = 'Column which initially contains the tree.'
@@ -273,7 +274,6 @@ object GeneralForm: TGeneralForm
           Margins.Bottom = 6
           Align = alLeft
           Caption = 'Switch main column:'
-          ExplicitHeight = 13
         end
         object MainColumnUpDown: TUpDown
           Left = 112
@@ -297,7 +297,7 @@ object GeneralForm: TGeneralForm
     Left = 22
     Top = 148
     Bitmap = {
-      494C010112001300100010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010112001300040010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000005000000001002000000000000050
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -1006,7 +1006,7 @@ object GeneralForm: TGeneralForm
     Left = 32
     Top = 200
     Bitmap = {
-      494C010151005400100018001800FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010151005400040018001800FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       000000000000360000002800000060000000F8010000010020000000000000F4
       0200000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000

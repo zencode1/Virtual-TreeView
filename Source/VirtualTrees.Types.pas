@@ -35,35 +35,40 @@ uses
 {$ENDIF}
 
 {$MINENUMSIZE 1, make enumerations as small as possible}
-  
-const
-  VTTreeStreamVersion    = 3;
-  VTHeaderStreamVersion  = 6;    // The header needs an own stream version to indicate changes only relevant to the header.
 
-  CacheThreshold         = 2000; // Number of nodes a tree must at least have to start caching and at the same
-                                 // time the maximum number of nodes between two cache entries.
-  FadeAnimationStepCount = 255;  // Number of animation steps for hint fading (0..255).
-  ShadowSize             = 5;    // Size in pixels of the hint shadow. This value has no influence on Win2K and XP systems
-                                 // as those OSes have native shadow support.
-  cDefaultTextMargin     = 4;    // The default margin of text
+const
+  VTTreeStreamVersion      = 3;
+  VTHeaderStreamVersion    = 6;    // The header needs an own stream version to indicate changes only relevant to the header.
+
+  CacheThreshold           = 2000; // Number of nodes a tree must at least have to start caching and at the same
+                                   // time the maximum number of nodes between two cache entries.
+  FadeAnimationStepCount   = 255;  // Number of animation steps for hint fading (0..255).
+  ShadowSize               = 5;    // Size in pixels of the hint shadow. This value has no influence on Win2K and XP systems
+                                   // as those OSes have native shadow support.
+  cDefaultTextMargin       = 4;    // The default margin of text
+  cInitialDefaultNodeHeight= 19;   // the default value of the DefaultNodeHeight property, which results in the font Segoe UI 9pt
 
   // Special identifiers for columns.
   NoColumn                 = - 1;
   InvalidColumn            = - 2;
 
-  // Indices for check state images used for checking.
-  ckEmpty                  =  0;  // an empty image used as place holder
+  // General constants for imagelists
+  NoImage                  = -1; // No image is avalable
+  EmptyImage               = -2; // an empty image used as place holder
+
+  // Indices for check state images in the imagelist used for displaying check-marks.
+  ckEmpty                  = 0;    // an empty image used as place holder
   // radio buttons
-  ckRadioUncheckedNormal   =  1;
-  ckRadioUncheckedHot      =  2;
-  ckRadioUncheckedPressed  =  3;
-  ckRadioUncheckedDisabled =  4;
-  ckRadioCheckedNormal     =  5;
-  ckRadioCheckedHot        =  6;
-  ckRadioCheckedPressed    =  7;
-  ckRadioCheckedDisabled   =  8;
+  ckRadioUncheckedNormal   = 1;
+  ckRadioUncheckedHot      = 2;
+  ckRadioUncheckedPressed  = 3;
+  ckRadioUncheckedDisabled = 4;
+  ckRadioCheckedNormal     = 5;
+  ckRadioCheckedHot        = 6;
+  ckRadioCheckedPressed    = 7;
+  ckRadioCheckedDisabled   = 8;
   // check boxes
-  ckCheckUncheckedNormal   =  9;
+  ckCheckUncheckedNormal   = 9;
   ckCheckUncheckedHot      = 10;
   ckCheckUncheckedPressed  = 11;
   ckCheckUncheckedDisabled = 12;
@@ -83,23 +88,24 @@ const
 
   // Instead using a TTimer class for each of the various events I use Windows timers with messages
   // as this is more economical.
-  ExpandTimer = 1;
-  EditTimer = 2;
-  HeaderTimer = 3;
-  ScrollTimer = 4;
-  ChangeTimer = 5;
-  StructureChangeTimer = 6;
-  SearchTimer = 7;
-  ThemeChangedTimer = 8;
+  ExpandTimer              = 1;
+  EditTimer                = 2;
+  HeaderTimer              = 3;
+  ScrollTimer              = 4;
+  ChangeTimer              = 5;
+  StructureChangeTimer     = 6;
+  SearchTimer              = 7;
+  ThemeChangedTimer        = 8;
+  ChangeCellTimer          = 9;
 
-  ThemeChangedTimerDelay = 500;
+  ThemeChangedTimerDelay   = 500;
 
   // Virtual Treeview does not need to be subclassed by an eventual Theme Manager instance as it handles
   // Windows XP theme painting itself. Hence the special message is used to prevent subclassing.
-  CM_DENYSUBCLASSING = CM_BASE + 2000;
+  CM_DENYSUBCLASSING       = CM_BASE + 2000;
 
   // Decoupling message for auto-adjusting the internal edit window.
-  CM_AUTOADJUST = CM_BASE + 2005;
+  CM_AUTOADJUST            = CM_BASE + 2005;
 
   // Drag image helpers for Windows 2000 and up.
   IID_IDropTargetHelper: TGUID = (D1: $4657278B; D2: $411B; D3: $11D2; D4: ($83, $9A, $00, $C0, $4F, $D9, $18, $D0));
@@ -109,41 +115,43 @@ const
   // VT's own clipboard formats,
   // Note: The reference format is used internally to allow to link to a tree reference
   //       to implement optimized moves and other back references.
-  CFSTR_VIRTUALTREE = 'Virtual Tree Data';
-  CFSTR_VTREFERENCE = 'Virtual Tree Reference';
-  CFSTR_HTML = 'HTML Format';
-  CFSTR_RTF = 'Rich Text Format';
-  CFSTR_RTFNOOBJS = 'Rich Text Format Without Objects';
-  CFSTR_CSV = 'CSV';
+  CFSTR_VIRTUALTREE        = 'Virtual Tree Data';
+  CFSTR_VTREFERENCE        = 'Virtual Tree Reference';
+  CFSTR_VTHEADERREFERENCE  = 'Virtual Tree Header Reference';
+  CFSTR_HTML               = 'HTML Format';
+  CFSTR_RTF                = 'Rich Text Format';
+  CFSTR_RTFNOOBJS          = 'Rich Text Format Without Objects';
+  CFSTR_CSV                = 'CSV';
 
   // Help identifiers for exceptions. Application developers are responsible to link them with actual help topics.
-  hcTFEditLinkIsNil      = 2000;
-  hcTFWrongMoveError     = 2001;
-  hcTFWrongStreamFormat  = 2002;
-  hcTFWrongStreamVersion = 2003;
-  hcTFStreamTooSmall     = 2004;
-  hcTFCorruptStream1     = 2005;
-  hcTFCorruptStream2     = 2006;
-  hcTFClipboardFailed    = 2007;
-  hcTFCannotSetUserData  = 2008;
+  hcTFEditLinkIsNil        = 2000;
+  hcTFWrongMoveError       = 2001;
+  hcTFWrongStreamFormat    = 2002;
+  hcTFWrongStreamVersion   = 2003;
+  hcTFStreamTooSmall       = 2004;
+  hcTFCorruptStream1       = 2005;
+  hcTFCorruptStream2       = 2006;
+  hcTFClipboardFailed      = 2007;
+  hcTFCannotSetUserData    = 2008;
 
   // Header standard split cursor.
-  crHeaderSplit          = crHSplit deprecated 'Use vrHSplit instead';
+  crHeaderSplit            = crHSplit deprecated 'Use vrHSplit instead';
 
   // Height changing cursor.
-  crVertSplit            = crVSplit deprecated 'Use vrVSplit instead';
+  crVertSplit              = crVSplit deprecated 'Use vrVSplit instead';
 
   // chunk IDs
   NodeChunk = 1;
   BaseChunk = 2;        // chunk containing node state, check state, child node count etc.
                         // this chunk is immediately followed by all child nodes
   CaptionChunk = 3;     // used by the string tree to store a node's caption
-  UserChunk = 4;        // used for data supplied by the application			  
+  UserChunk = 4;        // used for data supplied by the application
 
-type 
+type
 {$IFDEF VT_FMX}
   TDimension = Single;
   PDimension = ^Single;
+  TNodeHeight = Single;
   TVTCursor = TCursor;
   TVTDragDataObject = TDragObject;
   TVTBackground = TBitmap;
@@ -151,38 +159,56 @@ type
   TVTBrush = TBrush;
   TCanvas = FMX.Graphics.TCanvas;
 {$ELSE}
-  TDimension = Integer; // For Firemonkey support, see #841
+  TDimension = Integer; // Introduced for Firemonkey support, see #841
   PDimension = ^Integer;
+  TNodeHeight = NativeInt;
   TVTCursor = HCURSOR;
-  TVTDragDataObject = IDataObject;
+  TVTDragDataObject = WinApi.ActiveX.IDataObject;
   TVTBackground = TPicture;
   TVTPaintContext = HDC;
   TVTBrush = HBRUSH;
   TCanvas = Vcl.Graphics.TCanvas;
-{$ENDIF}			   
-  TColumnIndex = type Integer;
+{$ENDIF}
+  TColumnIndex = {$if CompilerVersion < 36} type {$endif} Integer; // See issue #1276
   TColumnPosition = type Cardinal;
   PCardinal = ^Cardinal;
-  
+
   // The exception used by the trees.
   EVirtualTreeError = class(Exception);
-  
+
   // Limits the speed interval which can be used for auto scrolling (milliseconds).
   TAutoScrollInterval = 1..1000;
-  
+
   TVTScrollIncrement = 1..10000;
-  
+
 {$IFDEF VT_VCL}
   // OLE drag'n drop support
   TFormatEtcArray = array of TFormatEtc;
 {$ENDIF}
 	
   TFormatArray = array of Word;
-  
+
+  // See issue #1270.
+  // Taken from: https://learn.microsoft.com/en-us/windows/win32/menurc/about-cursors
+  // To be used with: LoadCursor(0, MAKEINTRESOURCE(TPanningCursor.MoveAll))
+  TPanningCursor = (
+    MoveAll = 32654,
+    MoveNS = 32652,
+    MoveEW = 32653,
+    MoveN = 32655,
+    MoveNE = 32660,
+    MoveE = 32658,
+    MoveSE = 32662,
+    MoveS = 32656,
+    MoveSW = 32661,
+    MoveW = 32657,
+    MoveNW = 32659
+  );
+
   TSmartAutoFitType = (
-    smaAllColumns,      // consider nodes in view only for all columns
-    smaNoColumn,        // consider nodes in view only for no column
-    smaUseColumnOption  // use coSmartResize of the corresponding column
+    smaAllColumns,       // consider nodes in view only for all columns
+    smaNoColumn,         // consider nodes in view only for no column
+    smaUseColumnOption   // use coSmartResize of the corresponding column
   );  // describes the used column resize behaviour for AutoFitColumns
 
   TAddPopupItemType = (
@@ -190,7 +216,7 @@ type
     apDisabled,
     apHidden
   );
-  
+
   TCheckType = (
     ctNone,
     ctTriStateCheckBox,
@@ -198,21 +224,21 @@ type
     ctRadioButton,
     ctButton
   );
-  
+
   // The check states include both, transient and fluent (temporary) states. The only temporary state defined so
   // far is the pressed state.
   TCheckState = (
-    csUncheckedNormal,  // unchecked and not pressed
-    csUncheckedPressed, // unchecked and pressed
-    csCheckedNormal,    // checked and not pressed
-    csCheckedPressed,   // checked and pressed
-    csMixedNormal,      // 3-state check box and not pressed
-    csMixedPressed,     // 3-state check box and pressed
+    csUncheckedNormal,   // unchecked and not pressed
+    csUncheckedPressed,  // unchecked and pressed
+    csCheckedNormal,     // checked and not pressed
+    csCheckedPressed,    // checked and pressed
+    csMixedNormal,       // 3-state check box and not pressed
+    csMixedPressed,      // 3-state check box and pressed
     csUncheckedDisabled,// disabled checkbox, not checkable
-    csCheckedDisabled,  // disabled checkbox, not uncheckable
-    csMixedDisabled     // disabled 3-state checkbox
-  );
-  
+    csCheckedDisabled,   // disabled checkbox, not uncheckable
+    csMixedDisabled      // disabled 3-state checkbox
+    );
+
   /// Adds some convenience methods to type TCheckState
   TCheckStateHelper = record helper for TCheckState
   strict private
@@ -236,8 +262,8 @@ type
     function IsUnChecked(): Boolean; inline;
     function IsMixed():     Boolean; inline;
   end;
-  
-type	
+
+type
   // Options per column.
   TVTColumnOption = (
     coAllowClick,            // Column can be clicked (must be enabled too).
@@ -257,10 +283,11 @@ type
     coWrapCaption,           // Caption could be wrapped across several header lines to fit columns width.
     coUseCaptionAlignment,   // Column's caption has its own aligment.
     coEditable,              // Column can be edited
-    coStyleColor             // Prefer background color of VCL style over TVirtualTreeColumn.Color
-  );
+    coStyleColor,            // Prefer background color of VCL style over TVirtualTreeColumn.Color
+    coMulticellSelected      // Indicates this column is selected as part of multicell
+    );
   TVTColumnOptions = set of TVTColumnOption;
-  
+
   TVirtualTreeColumnStyle = (
     vsText,
     vsOwnerDraw
@@ -273,20 +300,20 @@ type
 
   TSortDirectionHelper = record helper for VirtualTrees.Types.TSortDirection
   strict private
-  const 
+  const
 	cSortDirectionToInt: Array [TSortDirection] of Integer = (1, -1);																	   
   public
     /// Returns +1 for ascending and -1 for descending sort order.
     function ToInt(): Integer; inline;
   end;
-  
+
   // Used during owner draw of the header to indicate which drop mark for the column must be drawn.
   TVTDropMarkMode = (
     dmmNone,
     dmmLeft,
     dmmRight
-  );
-  
+    );
+
   // auto scroll directions
   TScrollDirections = set of TScrollDirection;
 //    sdLeft,
@@ -294,7 +321,7 @@ type
 //    sdRight,
 //    sdDown
 //  );
-  
+
 
 
   // There is a heap of switchable behavior in the tree. Since published properties may never exceed 4 bytes,
@@ -303,132 +330,139 @@ type
   //
   // Options to customize tree appearance:
   TVTPaintOption = (
-    toHideFocusRect,           // Avoid drawing the dotted rectangle around the currently focused node.
-    toHideSelection,           // Selected nodes are drawn as unselected nodes if the tree is unfocused.
-    toHotTrack,                // Track which node is under the mouse cursor.
-    toPopupMode,               // Paint tree as would it always have the focus (useful for tree combo boxes etc.)
-    toShowBackground,          // Use the background image if there's one.
-    toShowButtons,             // Display collapse/expand buttons left to a node.
-    toShowDropmark,            // Show the dropmark during drag'n drop operations.
-    toShowHorzGridLines,       // Display horizontal lines to simulate a grid.
-    toShowRoot,                // Show lines also at top level (does not show the hidden/internal root node).
-    toShowTreeLines,           // Display tree lines to show hierarchy of nodes.
-    toShowVertGridLines,       // Display vertical lines (depending on columns) to simulate a grid.
-    toThemeAware,              // Draw UI elements (header, tree buttons etc.) according to the current theme if enabled (Windows XP+ only, application must be themed).
-    toUseBlendedImages,        // Enable alpha blending for ghosted nodes or those which are being cut/copied.
-    toGhostedIfUnfocused,      // Ghosted images are still shown as ghosted if unfocused (otherwise the become non-ghosted images).
-    toFullVertGridLines,       // Display vertical lines over the full client area, not only the space occupied by nodes.
-                               // This option only has an effect if toShowVertGridLines is enabled too.
-    toAlwaysHideSelection,     // Do not draw node selection, regardless of focused state.
-    toUseBlendedSelection,     // Enable alpha blending for node selections.
-    toStaticBackground,        // Show simple static background instead of a tiled one.
-    toChildrenAbove,           // Display child nodes above their parent.
-    toFixedIndent,             // Draw the tree with a fixed indent.
-    toUseExplorerTheme,        // Use the explorer theme if run under Windows Vista (or above).
-    toHideTreeLinesIfThemed,   // Do not show tree lines if theming is used.
-    toShowFilteredNodes        // Draw nodes even if they are filtered out.
-  );
+    toHideFocusRect,         // Avoid drawing the dotted rectangle around the currently focused node.
+    toHideSelection,         // Selected nodes are drawn as unselected nodes if the tree is unfocused.
+    toHotTrack,              // Track which node is under the mouse cursor.
+    toPopupMode,             // Paint tree as would it always have the focus (useful for tree combo boxes etc.)
+    toShowBackground,        // Use the background image if there's one.
+    toShowButtons,           // Display collapse/expand buttons left to a node.
+    toShowDropmark,          // Show the dropmark during drag'n drop operations.
+    toShowHorzGridLines,     // Display horizontal lines to simulate a grid.
+    toShowRoot,              // Show lines also at top level (does not show the hidden/internal root node).
+    toShowTreeLines,         // Display tree lines to show hierarchy of nodes.
+    toShowVertGridLines,     // Display vertical lines (depending on columns) to simulate a grid.
+    toThemeAware,            // Draw UI elements (header, tree buttons etc.) according to the current theme if enabled (Windows XP+ only, application must be themed).
+    toUseBlendedImages,      // Enable alpha blending for ghosted nodes or those which are being cut/copied.
+    toGhostedIfUnfocused,    // Ghosted images are still shown as ghosted if unfocused (otherwise the become non-ghosted images).
+    toFullVertGridLines,     // Display vertical lines over the full client area, not only the space occupied by nodes.
+                             // This option only has an effect if toShowVertGridLines is enabled too.
+    toAlwaysHideSelection,   // Do not draw node selection, regardless of focused state.
+    toUseBlendedSelection,   // Enable alpha blending for node selections.
+    toStaticBackground,      // Show simple static background instead of a tiled one.
+    toChildrenAbove,         // Display child nodes above their parent.
+    toFixedIndent,           // Draw the tree with a fixed indent.
+    toUseExplorerTheme,      // Use the explorer theme if run under Windows Vista (or above).
+    toHideTreeLinesIfThemed, // Do not show tree lines if theming is used.
+    toShowFilteredNodes      // Draw nodes even if they are filtered out.
+    );
   TVTPaintOptions = set of TVTPaintOption;
-  
+
   { Options to toggle animation support:
     **Do not use toAnimatedToggle when a background image is used for the tree.
-    The animation does not look good as the image splits and moves with it.
+   The animation does not look good as the image splits and moves with it.
   }
   TVTAnimationOption = (
-    toAnimatedToggle,          // Expanding and collapsing a node is animated (quick window scroll).
-                               // **See note above.
-    toAdvancedAnimatedToggle   // Do some advanced animation effects when toggling a node.
-  );
+    toAnimatedToggle,                // Expanding and collapsing a node is animated (quick window scroll).
+    // **See note above.
+    toAdvancedAnimatedToggle         // Do some advanced animation effects when toggling a node.
+    );
   TVTAnimationOptions = set of TVTAnimationOption;
 
   // Options which toggle automatic handling of certain situations:
   TVTAutoOption = (
-    toAutoDropExpand,           // Expand node if it is the drop target for more than a certain time.
-    toAutoExpand,               // Nodes are expanded (collapsed) when getting (losing) the focus.
-    toAutoScroll,               // Scroll if mouse is near the border while dragging or selecting.
-    toAutoScrollOnExpand,       // Scroll as many child nodes in view as possible after expanding a node.
-    toAutoSort,                 // Sort tree when Header.SortColumn or Header.SortDirection change or sort node if
-                                // child nodes are added. Sorting will take place also if SortColum is NoColumn (-1).
+    toAutoDropExpand,                // Expand node if it is the drop target for more than a certain time.
+    toAutoExpand,                    // Nodes are expanded (collapsed) when getting (losing) the focus.
+    toAutoScroll,                    // Scroll if mouse is near the border while dragging or selecting.
+    toAutoScrollOnExpand,            // Scroll as many child nodes in view as possible after expanding a node.
+    toAutoSort,                      // Sort tree when Header.SortColumn or Header.SortDirection change or sort node if
+                                     // child nodes are added. Sorting will take place also if SortColum is NoColumn (-1).
 
-    toAutoSpanColumns,          // Large entries continue into next column(s) if there's no text in them (no clipping).
-    toAutoTristateTracking,     // Checkstates are automatically propagated for tri state check boxes.
-    toAutoHideButtons,          // Node buttons are hidden when there are child nodes, but all are invisible.
-    toAutoDeleteMovedNodes,     // Delete nodes which where moved in a drag operation (if not directed otherwise).
-    toDisableAutoscrollOnFocus, // Disable scrolling a node or column into view if it gets focused.
-    toAutoChangeScale,          // Change default node height and header height automatically according to the used font.
-    toAutoFreeOnCollapse,       // Frees any child node after a node has been collapsed (HasChildren flag stays there).
-    toDisableAutoscrollOnEdit,  // Do not center a node horizontally when it is edited.
-    toAutoBidiColumnOrdering    // When set then columns (if any exist) will be reordered from lowest index to highest index
-                                // and vice versa when the tree's bidi mode is changed.
-  );
+    toAutoSpanColumns,               // Large entries continue into next column(s) if there's no text in them (no clipping).
+    toAutoTristateTracking,          // Checkstates are automatically propagated for tri state check boxes.
+    toAutoHideButtons,               // Node buttons are hidden when there are child nodes, but all are invisible.
+    toAutoDeleteMovedNodes,          // Delete nodes which where moved in a drag operation (if not directed otherwise).
+    toDisableAutoscrollOnFocus,      // Disable scrolling a node or column into view if it gets focused.
+    toAutoChangeScale,               // Change default node height and header height automatically according to the height of the used font, which is dpi-scaled.
+                                     // The property DefaultNodeHeight then has no effect and should not be used. Use the property TextMargin to increase the row height.
+                                     // The height of existing nodes will be rescaled whenever a new font height is detected.
+    toAutoFreeOnCollapse,            // Frees any child node after a node has been collapsed (HasChildren flag stays there).
+    toDisableAutoscrollOnEdit,       // Do not center a node horizontally when it is edited.
+    toAutoBidiColumnOrdering         // When set then columns (if any exist) will be reordered from lowest index to highest index
+                                     // and vice versa when the tree's bidi mode is changed.
+    );
   TVTAutoOptions = set of TVTAutoOption;
-  
+
   // Options which determine the tree's behavior when selecting nodes:
   TVTSelectionOption = (
-    toDisableDrawSelection,        // Prevent user from selecting with the selection rectangle in multiselect mode.
-    toExtendedFocus,               // Entries other than in the main column can be selected, edited etc.
-    toFullRowSelect,               // Hit test as well as selection highlight are not constrained to the text of a node.
-    toLevelSelectConstraint,       // Constrain selection to the same level as the selection anchor.
-    toMiddleClickSelect,           // Allow selection, dragging etc. with the middle mouse button. This and toWheelPanning
-                                   // are mutual exclusive.
-    toMultiSelect,                 // Allow more than one node to be selected.
-    toRightClickSelect,            // Allow selection, dragging etc. with the right mouse button.
-    toSiblingSelectConstraint,     // Constrain selection to nodes with same parent.
-    toCenterScrollIntoView,        // Center nodes vertically in the client area when scrolling into view.
-    toSimpleDrawSelection,         // Simplifies draw selection, so a node's caption does not need to intersect with the
-                                   // selection rectangle.
-    toAlwaysSelectNode,            // If this flag is set to true, the tree view tries to always have a node selected.
-                                   // This behavior is closer to the Windows TreeView and useful in Windows Explorer style applications.
-    toRestoreSelection,            // Set to true if upon refill the previously selected nodes should be selected again.
-                                   // The nodes will be identified by its caption (text in MainColumn)
-                                   // You may use TVTHeader.RestoreSelectiuonColumnIndex to define an other column that should be used for indentification.
+	toDisableDrawSelection,          // Prevent user from selecting with the selection rectangle in multiselect mode.
+    toExtendedFocus,                 // Entries other than in the main column can be selected, edited etc.
+    toFullRowSelect,                 // Hit test as well as selection highlight are not constrained to the text of a node.
+    toLevelSelectConstraint,         // Constrain selection to the same level as the selection anchor.
+    toMiddleClickSelect,             // Allow selection, dragging etc. with the middle mouse button. This and toWheelPanning
+                                     // are mutual exclusive.
+    toMultiSelect,                   // Allow more than one node/cell to be selected.
+    toRightClickSelect,              // Allow selection, dragging etc. with the right mouse button.
+    toSiblingSelectConstraint,       // Constrain selection to nodes with same parent.
+    toCenterScrollIntoView,          // Center nodes vertically in the client area when scrolling into view.
+    toSimpleDrawSelection,           // Simplifies draw selection, so a node's caption does not need to intersect with the
+                                     // selection rectangle.
+    toAlwaysSelectNode,              // If this flag is set to true, the tree view tries to always have a node selected.
+                                     // This behavior is closer to the Windows TreeView and useful in Windows Explorer style applications.
+    toRestoreSelection,              // Set to true if upon refill the previously selected nodes should be selected again.
+                                     // The nodes will be identified by its caption (text in MainColumn)
+                                     // You may use TVTHeader.RestoreSelectiuonColumnIndex to define an other column that should be used for indentification.
     toSyncCheckboxesWithSelection,   // If checkboxes are shown, they follow the change in selections. When checkboxes are
                                      // changed, the selections follow them and vice-versa.
                                      // **Only supported for ctCheckBox type checkboxes.
-    toSelectNextNodeOnRemoval        // If the selected node gets deleted, automatically select the next node.
+    toSelectNextNodeOnRemoval,       // If the selected node gets deleted, automatically select the next node.
+
+    /// <summary>
+    /// Enable multi-cell selection feature
+    /// </summary>
+    toMultiCellSelect
     );
   TVTSelectionOptions = set of TVTSelectionOption;
 
   TVTEditOptions = (
-    toDefaultEdit,             // Standard behaviour for end of editing (after VK_RETURN stay on edited cell).
-    toVerticalEdit,            // After VK_RETURN switch to next column.
-    toHorizontalEdit           // After VK_RETURN switch to next row.
-  );
-  
+    toDefaultEdit,                   // Standard behaviour for end of editing (after VK_RETURN stay on edited cell).
+    toVerticalEdit,                  // After VK_RETURN switch to next column.
+    toHorizontalEdit                 // After VK_RETURN switch to next row.
+    );
+
   // Options which do not fit into any of the other groups:
   TVTMiscOption = (
 {$IFDEF VT_VCL}
-    toAcceptOLEDrop,            // Register tree as OLE accepting drop target
+    toAcceptOLEDrop,                 // Register tree as OLE accepting drop target
 {$ENDIF}
-    toCheckSupport,             // Show checkboxes/radio buttons.
-    toEditable,                 // Node captions can be edited.
-    toFullRepaintOnResize,      // Fully invalidate the tree when its window is resized (CS_HREDRAW/CS_VREDRAW).
-    toGridExtensions,           // Use some special enhancements to simulate and support grid behavior.
-    toInitOnSave,               // Initialize nodes when saving a tree to a stream.
-    toReportMode,               // Tree behaves like TListView in report mode.
-    toToggleOnDblClick,         // Toggle node expansion state when it is double clicked.
-    toWheelPanning,             // Support for mouse panning (wheel mice only). This option and toMiddleClickSelect are
-                                // mutal exclusive, where panning has precedence.
-    toReadOnly,                 // The tree does not allow to be modified in any way. No action is executed and
-                                // node editing is not possible.
-    toVariableNodeHeight,       // When set then GetNodeHeight will trigger OnMeasureItem to allow variable node heights.
-    toFullRowDrag,              // Start node dragging by clicking anywhere in it instead only on the caption or image.
-                                // Must be used together with toDisableDrawSelection.
-    toNodeHeightResize,         // Allows changing a node's height via mouse.
-    toNodeHeightDblClickResize, // Allows to reset a node's height to FDefaultNodeHeight via a double click.
-    toEditOnClick,              // Editing mode can be entered with a single click
-    toEditOnDblClick,           // Editing mode can be entered with a double click
-    toReverseFullExpandHotKey   // Used to define Ctrl+'+' instead of Ctrl+Shift+'+' for full expand (and similar for collapsing)
-  );
+    toCheckSupport,                  // Show checkboxes/radio buttons.
+    toEditable,                      // Node captions can be edited.
+    toFullRepaintOnResize,           // Fully invalidate the tree when its window is resized (CS_HREDRAW/CS_VREDRAW).
+    toGridExtensions,                // Use some special enhancements to simulate and support grid behavior.
+    toInitOnSave,                    // Initialize nodes when saving a tree to a stream.
+    toReportMode,                    // Tree behaves like TListView in report mode.
+    toToggleOnDblClick,              // Toggle node expansion state when it is double clicked.
+    toWheelPanning,                  // Support for mouse panning (wheel mice only). This option and toMiddleClickSelect are
+                                     // mutal exclusive, where panning has precedence.
+    toReadOnly,                      // The tree does not allow to be modified in any way. No action is executed and
+                                     // node editing is not possible.
+    toVariableNodeHeight,            // When set then GetNodeHeight will trigger OnMeasureItem to allow variable node heights.
+    toFullRowDrag,                   // Start node dragging by clicking anywhere in it instead only on the caption or image.
+                                     // Must be used together with toDisableDrawSelection.
+    toNodeHeightResize,              // Allows changing a node's height via mouse.
+    toNodeHeightDblClickResize,      // Allows to reset a node's height to FDefaultNodeHeight via a double click.
+    toEditOnClick,                   // Editing mode can be entered with a single click
+    toEditOnDblClick,                // Editing mode can be entered with a double click
+    toReverseFullExpandHotKey        // Used to define Ctrl+'+' instead of Ctrl+Shift+'+' for full expand (and similar for collapsing)
+    );
   TVTMiscOptions = set of TVTMiscOption;
-  
+
   // Options to control data export
   TVTExportMode = (
-    emAll,        // export all records (regardless checked state)
-    emChecked,    // export checked records only
-    emUnchecked,   // export unchecked records only
+    emAll,                           // export all records (regardless checked state)
+    emChecked,                       // export checked records only
+    emUnchecked,                     // export unchecked records only
     emVisibleDueToExpansion, //Do not export nodes that are not visible because their parent is not expanded
-    emSelected // export selected nodes only
+    emSelected                       // export selected nodes only
     );
 
   // Describes the type of text to return in the text and draw info retrival events.
@@ -439,13 +473,13 @@ type
 
   // Options regarding strings (useful only for the string tree and descendants):
   TVTStringOption = (
-    toSaveCaptions,          // If set then the caption is automatically saved with the tree node, regardless of what is
-                             // saved in the user data.
-    toShowStaticText,        // Show static text in a caption which can be differently formatted than the caption
-                             // but cannot be edited.
-    toAutoAcceptEditChange   // Automatically accept changes during edit if the user finishes editing other then
-                             // VK_RETURN or ESC. If not set then changes are cancelled.
-  );
+    toSaveCaptions,                  // If set then the caption is automatically saved with the tree node, regardless of what is
+                                     // saved in the user data.
+    toShowStaticText,                // Show static text in a caption which can be differently formatted than the caption
+                                     // but cannot be edited.
+    toAutoAcceptEditChange           // Automatically accept changes during edit if the user finishes editing other then
+                                     // VK_RETURN or ESC. If not set then changes are cancelled.
+    );
   TVTStringOptions = set of TVTStringOption;
 
   // Be careful when adding new states as this might change the size of the type which in turn
@@ -540,10 +574,10 @@ type
     tsVCLDragging,            // VCL drag'n drop in progress.
     tsVCLDragPending,         // One-shot flag to avoid clearing the current selection on implicit mouse up for VCL drag.
     tsVCLDragFinished,        // Flag to avoid triggering the OnColumnClick event twice
-    tsWheelPanning,           // Wheel mouse panning is active or soon will be.
-    tsWheelScrolling,         // Wheel mouse scrolling is active or soon will be.
+    tsPanning,                // Mouse panning is active.
     tsWindowCreating,         // Set during window handle creation to avoid frequent unnecessary updates.
-    tsUseExplorerTheme        // The tree runs under WinVista+ and is using the explorer theme
+    tsUseExplorerTheme,       // The tree runs under WinVista+ and is using the explorer theme
+    tsChangeCellPending       // A cell selection change is pending.
   );
 
 
@@ -728,7 +762,7 @@ type
   TVTButtonFillMode = (
     fmTreeColor,             // solid color, uses the tree's background color
     fmWindowColor,           // solid color, uses clWindow
-    fmShaded,                // color gradient, Windows XP style (legacy code, use toThemeAware on Windows XP instead)
+    fmShaded,                // no longer supported, use toThemeAware for Windows XP and later instead
     fmTransparent            // transparent color, use the item's background color
   );
 
@@ -797,14 +831,14 @@ type
   end;
 
 const
-  DefaultPaintOptions = [toShowButtons, toShowDropmark, toShowTreeLines, toShowRoot, toThemeAware, toUseBlendedImages, toFullVertGridLines];
+  DefaultPaintOptions     = [toShowButtons, toShowDropmark, toShowTreeLines, toShowRoot, toThemeAware, toUseBlendedImages, toFullVertGridLines];
   DefaultAnimationOptions = [];
-  DefaultAutoOptions = [toAutoDropExpand, toAutoTristateTracking, toAutoScrollOnExpand, toAutoDeleteMovedNodes, toAutoChangeScale, toAutoSort, toAutoHideButtons];
+  DefaultAutoOptions      = [toAutoDropExpand, toAutoTristateTracking, toAutoScrollOnExpand, toAutoDeleteMovedNodes, toAutoChangeScale, toAutoSort, toAutoHideButtons];
   DefaultSelectionOptions = [toSelectNextNodeOnRemoval];
   DefaultMiscOptions = [{$IFDEF VT_VCL}toAcceptOLEDrop, {$ENDIF}toFullRepaintOnResize, toInitOnSave, toToggleOnDblClick, toWheelPanning, toEditOnClick];
 
   DefaultStringOptions    = [toSaveCaptions, toAutoAcceptEditChange];
-  
+
 type
   TCustomVirtualTreeOptions = class(TPersistent)
   private
@@ -824,7 +858,7 @@ type
   protected
     {$IFDEF VT_VCL} 
     // Mitigator function to use the correct style service for this context (either the style assigned to the control for Delphi > 10.4 or the application style)
-    function StyleServices(AControl : TControl = nil) : TCustomStyleServices;																																								 
+    function StyleServices(AControl : TControl = nil) : TCustomStyleServices;
 	{$ENDIF}
   public
     constructor Create(AOwner : TCustomControl); virtual;
@@ -854,7 +888,7 @@ type
     property PaintOptions;
     property SelectionOptions;
   end;
- 
+
   TCustomStringTreeOptions = class(TCustomVirtualTreeOptions)
   private
     FStringOptions: TVTStringOptions;
@@ -914,7 +948,7 @@ type
   private
     fIndex: Cardinal;         // index of node with regard to its parent
     fChildCount: Cardinal;    // number of child nodes
-    fNodeHeight: TDimension;  // height in pixels
+    fNodeHeight: TNodeHeight;  // height in pixels
   public
     States: TVirtualNodeStates; // states describing various properties of the node (expanded, initialized etc.)
     Align: Byte;             // line/button alignment
@@ -922,8 +956,7 @@ type
     CheckType: TCheckType;   // indicates which check type shall be used for this node
     Dummy: Byte;             // dummy value to fill DWORD boundary
     TotalCount: Cardinal;    // sum of this node, all of its child nodes and their child nodes etc.
-    TotalHeight: TDimension; // height in pixels this node covers on screen including the height of all of its
-                             // children
+    TotalHeight: TNodeHeight;// height in pixels this node covers on screen including the height of all of its children.
     _Filler: TDWordFiller;   // Ensure 8 Byte alignment of following pointers for 64bit builds. Issue #1136
     // Note: Some copy routines require that all pointers (as well as the data area) in a node are
     //       located at the end of the node! Hence if you want to add new member fields (except pointers to internal
@@ -944,14 +977,14 @@ type
     procedure SetLastChild(const pLastChild: PVirtualNode); inline; //internal method, do not call directly
     procedure SetIndex(const pIndex: Cardinal); inline;       //internal method, do not call directly.
     procedure SetChildCount(const pCount: Cardinal); inline; //internal method, do not call directly.
-    procedure SetNodeHeight(const pNodeHeight: TDimension); inline; //internal method, do not call directly.
+    procedure SetNodeHeight(const pNodeHeight: TNodeHeight); inline; //internal method, do not call directly.
     property Index: Cardinal read fIndex;
     property ChildCount: Cardinal read fChildCount;
     property Parent: PVirtualNode read fParent;
     property PrevSibling: PVirtualNode read fPrevSibling;
     property NextSibling: PVirtualNode read fNextSibling;
     property LastChild: PVirtualNode read fLastChild;
-    property NodeHeight: TDimension read fNodeHeight;
+    property NodeHeight: TNodeHeight read fNodeHeight;
   private
     Data: record end;        // this is a placeholder, each node gets extra data determined by NodeDataSize
   public
@@ -1020,6 +1053,16 @@ type
     HitPoint: TPoint;
     ShiftState: TShiftState;
   end;
+
+  // A representation of a single cell (node + column)
+  PVTCell = ^TVTCell;
+  TVTCell = record
+    Node: PVirtualNode;
+    Column: TColumnIndex;
+    constructor Create(ANode: PVirtualNode; AColumn: TColumnIndex);
+  end;
+
+  TVTCellArray = array of TVTCell;
 
   TVTHeaderStyle = (
     hsThickButtons,                 //TButton look and feel
@@ -1194,7 +1237,7 @@ begin
   Exit(@Self <> nil);
 end;
 
-procedure TVirtualNode.SetNodeHeight(const pNodeHeight: TDimension);
+procedure TVirtualNode.SetNodeHeight(const pNodeHeight: TNodeHeight);
 begin
   fNodeHeight := pNodeHeight;
 end;
@@ -1327,7 +1370,7 @@ begin
   if ImageInfo[iiCheck].Index > -1 then
     ImageInfo[iiCheck].YPos := CellRect.Top + VAlign - ImageInfo[iiCheck].Images.Height div 2;
 {$ENDIF}
-end;	
+end;
 
 
 //----------------- TCustomVirtualTreeOptions --------------------------------------------------------------------------
@@ -1374,8 +1417,8 @@ begin
   FMiscOptions := Value;
 end;
 
-//----------------------------------------------------------------------------------------------------------------------	  
-							  
+//----------------------------------------------------------------------------------------------------------------------
+
 procedure TCustomVirtualTreeOptions.SetMiscOptions(const Value : TVTMiscOptions);
 var
   ToBeSet, ToBeCleared : TVTMiscOptions;
@@ -1397,16 +1440,10 @@ begin
 
         if not (csDesigning in ComponentState) then
         begin
-{$IFDEF VT_VCL}
-          if toAcceptOLEDrop in ToBeCleared then
-            RevokeDragDrop(Handle);
           if toFullRepaintOnResize in ToBeSet + ToBeCleared then
             RecreateWnd;
-          if toAcceptOLEDrop in ToBeSet then
-            RegisterDragDrop(Handle, DragManager as IDropTarget);
-{$ENDIF}
-          if toVariableNodeHeight in ToBeSet then 
-		  begin
+          if toVariableNodeHeight in ToBeSet then
+          begin
             BeginUpdate();
             try
               ReInitNode(nil, True);
@@ -1482,10 +1519,10 @@ begin
             DoStateChange([tsUseExplorerTheme]);
           end
           else if toUseExplorerTheme in ToBeCleared then
-            begin
-              SetWindowTheme('');
-              DoStateChange([], [tsUseExplorerTheme]);
-            end;
+          begin
+            SetWindowTheme('');
+            DoStateChange([], [tsUseExplorerTheme]);
+          end;
 {$ENDIF}
         end;
 
@@ -1536,10 +1573,17 @@ begin
       if (toMultiSelect in (ToBeCleared + ToBeSet)) or ([toLevelSelectConstraint, toSiblingSelectConstraint] * ToBeSet <> []) then
         ClearSelection;
 
+      // Clear multicell selection when toFullRowSelect is going to be set or
+      // when a combination of toExtendedFocus, toMultiSelect, toMultiCellSelect is cleared
+      if (toFullRowSelect in ToBeSet) or ([toExtendedFocus, toMultiSelect, toMultiCellSelect] * ToBeCleared <> []) then
+        ClearCellSelection;
+
       if (toExtendedFocus in ToBeCleared) and (FocusedColumn > 0) and HandleAllocated then
       begin
         FocusedColumn := Header.MainColumn;
         Invalidate;
+        // Also clear multicell selection when toExtendedFocus is removed
+        ClearCellSelection;
       end;
 
       if not (toExtendedFocus in FSelectionOptions) then
@@ -1757,6 +1801,15 @@ begin
   Result := cSortDirectionToInt[Self];
 end;
 
+//----------------------------------------------------------------------------------------------------------------------
+
+{ TVTCell }
+
+constructor TVTCell.Create(ANode: PVirtualNode; AColumn: TColumnIndex);
+begin
+  Node := ANode;
+  Column := AColumn;
+end;
 //----------------------------------------------------------------------------------------------------------------------
 
 { TCustomVirtualTreeOptionsHelper }

@@ -54,7 +54,6 @@ uses
   , VirtualTrees.Types;
 {$ENDIF}
 
-
 type
   // Describes the mode how to blend pixels.
   TBlendMode = (
@@ -86,23 +85,54 @@ procedure DrawImage(ImageList: TCustomImageList; Index: Integer; Canvas: TCanvas
 /// Adjusts the given string S so that it fits into the given width. EllipsisWidth gives the width of
 /// the three points to be added to the shorted string. If this value is 0 then it will be determined implicitely.
 /// For higher speed (and multiple entries to be shorted) specify this value explicitely.
-/// </summary>																	
-function ShortenString(ACanvas: TCanvas; const S: string; Width: {$IFDEF VT_FMX}Single{$ELSE}Integer{$ENDIF}; EllipsisWidth: {$IFDEF VT_FMX}Single{$ELSE}Integer{$ENDIF} = 0): string;
+/// </summary>
+function ShortenString(ACanvas: TCanvas; const S: string; Width: {$IFDEF VT_FMX}Single{$ELSE}Integer{$ENDIF}; EllipsisWidth: {$IFDEF VT_FMX}Single{$ELSE}Integer{$ENDIF} = 0): string; overload;
 
 /// <summary>
 /// Wrap the given string S so that it fits into a space of given width.
 /// RTL determines if right-to-left reading is active.
-/// </summary>  
-function WrapString(ACanvas: TCanvas; const S: string; const Bounds: TRect; RTL: Boolean; DrawFormat: Cardinal): string;
+/// </summary>
+function WrapString(ACanvas: TCanvas; const S: string; const Bounds: TRect; RTL: Boolean; DrawFormat: Cardinal): string; overload;
 
 /// <summary>
 /// Calculates bounds of a drawing rectangle for the given string
-/// </summary>	  
-procedure GetStringDrawRect(ACanvas: TCanvas; const S: string; var Bounds: TRect; DrawFormat: Cardinal);
+/// </summary>
+procedure GetStringDrawRect(ACanvas: TCanvas; const S: string; var Bounds: TRect; DrawFormat: Cardinal); overload;
+
+{$IFDEF VT_VCL}
+// HDC based versions, the original VCL API
+/// <summary>
+/// Adjusts the given string S so that it fits into the given width. EllipsisWidth gives the width of
+/// the three points to be added to the shorted string. If this value is 0 then it will be determined implicitely.
+/// For higher speed (and multiple entries to be shorted) specify this value explicitely.
+/// </summary>
+function ShortenString(DC: HDC; const S: string; Width: TDimension; EllipsisWidth: TDimension = 0): string; overload;
+
+//--------------------------
+// ShortenString similar to VTV's version, except:
+// -- Does not assume using three dots or any particular character for ellipsis
+// -- Does not add ellipsis to string, so could be added anywhere
+// -- Requires EllipsisWidth, and zero does nothing special
+// Returns:
+//   ShortenedString as var param
+//   True if shortened (ie: add ellipsis somewhere), otherwise false
+function ShortenString(TargetCanvasDC: HDC; const StrIn: string; const AllowedWidth_px: Integer; const EllipsisWidth_px: Integer; var ShortenedString: string): boolean; overload;
+
+/// <summary>
+/// Wrap the given string S so that it fits into a space of given width.
+/// RTL determines if right-to-left reading is active.
+/// </summary>
+function WrapString(DC: HDC; const S: string; const Bounds: TRect; RTL: Boolean; DrawFormat: Cardinal): string; overload;
+
+/// <summary>
+/// Calculates bounds of a drawing rectangle for the given string
+/// </summary>
+procedure GetStringDrawRect(DC: HDC; const S: string; var Bounds: TRect; DrawFormat: Cardinal); overload;
+{$ENDIF}
 
 /// <summary>
 /// Converts the incoming rectangle so that left and top are always less than or equal to right and bottom.
-/// </summary>	  
+/// </summary>
 function OrderRect(const R: TRect): TRect;
 
 {$IFDEF VT_VCL}
@@ -111,7 +141,7 @@ function OrderRect(const R: TRect): TRect;
 /// </summary>
 /// <remarks>
 /// (used in DragMove of the drag manager and DragTo of the header columns).
-/// </remarks>	  
+/// </remarks>
 procedure FillDragRectangles(DragWidth, DragHeight, DeltaX, DeltaY: Integer; var RClip, RScroll, RSamp1, RSamp2, RDraw1, RDraw2: TRect);
 
 /// <summary>
@@ -242,19 +272,12 @@ procedure SetCanvasOrigin(Canvas: TCanvas; X, Y: Integer);
 
 // Set the coordinate space origin of a given canvas.
 
-var
-  P: TPoint;
-
 begin
-  // Reset origin as otherwise we would accumulate the origin shifts when calling LPtoDP.
-  SetWindowOrgEx(Canvas.Handle, 0, 0, nil);
-
-  // The shifting is expected in physical points, so we have to transform them accordingly.
-  P := Point(X, Y);
-  LPtoDP(Canvas.Handle, P, 1);
-
-  // Do the shift.
-  SetWindowOrgEx(Canvas.Handle, P.X, P.Y, nil);
+  // SetWindowOrgEx expects logical units, which is what the tree code calculates with.
+  // The former LPtoDP transformation here applied the mapping scale a second time, which
+  // shifted every node to twice its offset when the target canvas uses a mapping mode
+  // like MM_ANISOTROPIC (issue #1074). With the default MM_TEXT it was a no-op.
+  SetWindowOrgEx(Canvas.Handle, X, Y, nil);
 end;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -279,6 +302,7 @@ end;
 //----------------------------------------------------------------------------------------------------------------------
 
 
+{$IFDEF VT_FMX}
 procedure GetStringDrawRect(ACanvas: TCanvas; const S: string; var Bounds: TRect; DrawFormat: Cardinal);
 begin
 {$IFDEF VT_FMX}
@@ -514,11 +538,313 @@ begin
 
   Len := Length(Result);
   if Result[Len] = WideLF then
-    SetLength(Result, Len - 1);  
+    SetLength(Result, Len - 1);
 {$ENDIF}
 
 
 end;
+{$ELSE}
+procedure GetStringDrawRect(DC: HDC; const S: string; var Bounds: TRect; DrawFormat: Cardinal);
+
+begin
+  Bounds.Right := Bounds.Left + 1;
+  Bounds.Bottom := Bounds.Top + 1;
+
+  Winapi.Windows.DrawTextW(DC, PWideChar(S), Length(S), Bounds, DrawFormat or DT_CALCRECT);
+end;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+
+function ShortenString(DC: HDC; const S: string; Width: TDimension; EllipsisWidth: TDimension = 0): string;
+
+var
+  Size: TSize;
+  Len: Integer;
+  L, H, N: Integer;
+  W: TDimension;
+  
+begin
+  Len := Length(S);
+  if (Len = 0) or (Width <= 0) then
+    Result := ''
+  else
+  begin
+    // Determine width of triple point using the current DC settings (if not already done).
+    if EllipsisWidth = 0 then
+    begin
+      GetTextExtentPoint32W(DC, '...', 3, Size);
+      EllipsisWidth := Size.cx;
+    end;
+
+    begin
+      // Do a binary search for the optimal string length which fits into the given width.
+      L := 0;
+      N := 0;
+      W := Width;
+      H := Len;
+      while L < H do
+      begin
+        N := (L + H + 1) shr 1;
+        GetTextExtentPoint32W(DC, PWideChar(S), N, Size);
+        W := Size.cx + EllipsisWidth;
+        if W <= Width then
+          L := N
+        else
+          H := N - 1;
+      end;
+      if W <= Width then
+        L := N;
+      if L >= Len then
+        Result := S
+      else if Width <= EllipsisWidth then
+        Result := ''
+      else
+        Result := Copy(S, 1, L) + '...';
+    end;
+  end;
+end;
+
+
+//--------------------------
+function ShortenString(TargetCanvasDC: HDC; const StrIn: string; const AllowedWidth_px: Integer; const EllipsisWidth_px: Integer; var ShortenedString: string): boolean;
+//--------------------------
+var
+  Size_px_x_px: TSize;  // cx, cy
+  StrInLen: Integer;
+  LoLen, HiLen, TestLen, TestWidth_px: Integer;
+
+begin
+  StrInLen := Length(StrIn);
+  if (StrInLen = 0) then
+  Begin
+    ShortenedString := '';
+    Result := False;  // No ellipsis needed since original was empty
+  End else
+  if (AllowedWidth_px <= 0) then
+  Begin
+    ShortenedString := '';
+    Result := True;  // Ellipsis needed, since non-empty string replaced.
+                     // But likely will get clipped if AllowedWidth is really zero
+  End else
+  begin
+      // Do a binary search for the optimal string length which fits into the given width.
+      LoLen := 0;
+      TestLen := 0;
+      TestWidth_px := AllowedWidth_px;
+      HiLen := StrInLen;
+
+      while LoLen < HiLen do
+      begin
+        TestLen := (LoLen + HiLen + 1) shr 1;  // Test average of Lo and Hi
+
+        GetTextExtentPoint32W(TargetCanvasDC, PWideChar(StrIn), TestLen, Size_px_x_px);
+        TestWidth_px := Size_px_x_px.cx + EllipsisWidth_px;
+
+        if TestWidth_px <= AllowedWidth_px then
+        Begin
+          LoLen := TestLen      // Low bound must be at least as much as TestLen
+        End else
+        Begin
+          HiLen := TestLen - 1; // Continue until Hi bound string produces width below AllowedWidth_px
+        End;
+      end;
+
+      if TestWidth_px <= AllowedWidth_px then
+      Begin
+        LoLen := TestLen;
+      End;
+      if LoLen >= StrInLen then
+      Begin
+        ShortenedString := StrIn;
+        Result := False;
+      End else if AllowedWidth_px <= EllipsisWidth_px then
+      Begin
+        ShortenedString := '';
+        Result      := True; // Even though Ellipsis won't fit in AllowedWidth,
+                             // let clipping decide how much of ellipsis to show
+      End else
+      Begin
+        ShortenedString := Copy(StrIn, 1, LoLen);
+        Result := True;
+      End;
+    end;
+end;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+
+function WrapString(DC: HDC; const S: string; const Bounds: TRect; RTL: Boolean; DrawFormat: Cardinal): string;
+
+var
+  Width,
+  Len,
+  WordCounter,
+  WordsInLine,
+  I, W: Integer;
+  Buffer,
+  Line: string;
+  Words: array of string;
+  R: TRect;
+
+begin
+  Result := '';
+  // Leading and trailing are ignored.
+  Buffer := Trim(S);
+  Len := Length(Buffer);
+  if Len < 1 then
+    Exit;
+
+  Width := Bounds.Right - Bounds.Left;
+  R := Rect(0, 0, 0, 0);
+
+  // Count the words in the string.
+  WordCounter := 1;
+  for I := 1 to Len do
+    if Buffer[I] = ' ' then
+      Inc(WordCounter);
+  SetLength(Words, WordCounter);
+
+  if RTL then
+  begin
+    // At first we split the string into words with the last word being the
+    // first element in Words.
+    W := 0;
+    for I := 1 to Len do
+      if Buffer[I] = ' ' then
+        Inc(W)
+      else
+        Words[W] := Words[W] + Buffer[I];
+
+    // Compose Result.
+    while WordCounter > 0 do
+    begin
+      WordsInLine := 0;
+      Line := '';
+
+      while WordCounter > 0 do
+      begin
+        GetStringDrawRect(DC, Line + IfThen(WordsInLine > 0, ' ', '') + Words[WordCounter - 1], R, DrawFormat);
+        if R.Right > Width then
+        begin
+          // If at least one word fits into this line then continue with the next line.
+          if WordsInLine > 0 then
+            Break;
+
+          Buffer := Words[WordCounter - 1];
+          if Len > 1 then
+          begin
+            for Len := Length(Buffer) - 1 downto 2 do
+            begin
+              GetStringDrawRect(DC, RightStr(Buffer, Len), R, DrawFormat);
+              if R.Right <= Width then
+                Break;
+            end;
+          end
+          else
+            Len := Length(Buffer);
+
+          Line := Line + RightStr(Buffer, Max(Len, 1));
+          Words[WordCounter - 1] := LeftStr(Buffer, Length(Buffer) - Max(Len, 1));
+          if Words[WordCounter - 1] = '' then
+            Dec(WordCounter);
+          Break;
+        end
+        else
+        begin
+          Dec(WordCounter);
+          Line := Words[WordCounter] + IfThen(WordsInLine > 0, ' ', '') + Line;
+          Inc(WordsInLine);
+        end;
+      end;
+
+      Result := Result + Line + WideLF;
+    end;
+  end
+  else
+  begin
+    // At first we split the string into words with the last word being the
+    // first element in Words.
+    W := WordCounter - 1;
+    for I := 1 to Len do
+      if Buffer[I] = ' ' then
+        Dec(W)
+      else
+        Words[W] := Words[W] + Buffer[I];
+
+    // Compose Result.
+    while WordCounter > 0 do
+    begin
+      WordsInLine := 0;
+      Line := '';
+
+      while WordCounter > 0 do
+      begin
+        GetStringDrawRect(DC, Line + IfThen(WordsInLine > 0, ' ', '') + Words[WordCounter - 1], R, DrawFormat);
+        if R.Right > Width then
+        begin
+          // If at least one word fits into this line then continue with the next line.
+          if WordsInLine > 0 then
+            Break;
+
+          Buffer := Words[WordCounter - 1];
+          if Len > 1 then
+          begin
+            for Len := Length(Buffer) - 1 downto 2 do
+            begin
+              GetStringDrawRect(DC, LeftStr(Buffer, Len), R, DrawFormat);
+              if R.Right <= Width then
+                Break;
+            end;
+          end
+          else
+            Len := Length(Buffer);
+
+          Line := Line + LeftStr(Buffer, Max(Len, 1));
+          Words[WordCounter - 1] := RightStr(Buffer, Length(Buffer) - Max(Len, 1));
+          if Words[WordCounter - 1] = '' then
+            Dec(WordCounter);
+          Break;
+        end
+        else
+        begin
+          Dec(WordCounter);
+          Line := Line + IfThen(WordsInLine > 0, ' ', '') + Words[WordCounter];
+          Inc(WordsInLine);
+        end;
+      end;
+
+      Result := Result + Line + WideLF;
+    end;
+  end;
+
+  Len := Length(Result);
+  if Result[Len] = WideLF then
+    SetLength(Result, Len - 1);
+end;
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
+function ShortenString(ACanvas: TCanvas; const S: string; Width: Integer; EllipsisWidth: Integer = 0): string;
+begin
+  Result := ShortenString(ACanvas.Handle, S, Width, EllipsisWidth);
+end;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+function WrapString(ACanvas: TCanvas; const S: string; const Bounds: TRect; RTL: Boolean; DrawFormat: Cardinal): string;
+begin
+  Result := WrapString(ACanvas.Handle, S, Bounds, RTL, DrawFormat);
+end;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+procedure GetStringDrawRect(ACanvas: TCanvas; const S: string; var Bounds: TRect; DrawFormat: Cardinal);
+begin
+  GetStringDrawRect(ACanvas.Handle, S, Bounds, DrawFormat);
+end;
+{$ENDIF}
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -567,7 +893,6 @@ begin
   Assert(Result <> nil, 'Alpha blending DC error: no bitmap available.');
 end;
 
-//----------------------------------------------------------------------------------------------------------------------
 
 procedure AlphaBlendLineConstant(Source, Destination: Pointer; Count: Integer; ConstantAlpha, Bias: Integer);
 
@@ -577,7 +902,70 @@ procedure AlphaBlendLineConstant(Source, Destination: Pointer; Count: Integer; C
 // and 255 totally opaque (source pixel only).
 // Bias is an additional value which gets added to every component and must be in the range -128..127
 //
-{$ifdef CPUX64}
+
+{$IFNDEF ASSEMBLER}    //new
+var
+  Src, Dst: PCardinal;
+  i: Integer;
+
+  S, D: Cardinal;
+  sB, sG, sR: Integer;
+  dB, dG, dR: Integer;
+  rB, rG, rR: Integer;
+begin
+  Src := PCardinal(Source);
+  Dst := PCardinal(Destination);
+
+  for i := 0 to Count - 1 do
+  begin
+    S := Src^;
+    D := Dst^;
+
+    // Extract source components (BGRA)
+    sB :=  S         and $FF;
+    sG := (S shr 8)  and $FF;
+    sR := (S shr 16) and $FF;
+
+    // Extract destination components (BGRA)
+    dB :=  D         and $FF;
+    dG := (D shr 8)  and $FF;
+    dR := (D shr 16) and $FF;
+
+    // Blend: (alpha * (source - target) + 256 * target) / 256
+    rB := (ConstantAlpha * (sB - dB) + (dB shl 8)) shr 8;
+    rG := (ConstantAlpha * (sG - dG) + (dG shl 8)) shr 8;
+    rR := (ConstantAlpha * (sR - dR) + (dR shl 8)) shr 8;
+
+    // Bias handling: 0..255 -> -128..127 -> bias (saturated) -> 0..255
+    rB := rB - 128 + Bias;
+    if rB < -128 then rB := -128 else
+    if rB >  127 then rB :=  127;
+    rB := rB + 128;
+
+    rG := rG - 128 + Bias;
+    if rG < -128 then rG := -128 else
+    if rG >  127 then rG :=  127;
+    rG := rG + 128;
+
+    rR := rR - 128 + Bias;
+    if rR < -128 then rR := -128 else
+    if rR >  127 then rR :=  127;
+    rR := rR + 128;
+
+    // Store result (preserve destination alpha)
+    Dst^ :=
+      (D and $FF000000) or
+      (Cardinal(rR) shl 16) or
+      (Cardinal(rG) shl 8)  or
+       Cardinal(rB);
+
+    Inc(Src);
+    Inc(Dst);
+  end;
+end;
+    {$ELSE}
+      {$IF defined(CPUX64)}
+
 // RCX contains Source
 // RDX contains Destination
 // R8D contains Count
@@ -700,7 +1088,9 @@ asm
         POP     EDI
         POP     ESI
 end;
-{$endif CPUX64}
+  {$ENDIF}
+{$ENDIF !ASSEMBLER}
+
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -710,7 +1100,72 @@ procedure AlphaBlendLinePerPixel(Source, Destination: Pointer; Count, Bias: Inte
 // The layout of a pixel must be BGRA.
 // Bias is an additional value which gets added to every component and must be in the range -128..127
 //
-{$ifdef CPUX64}
+{$IFNDEF ASSMEBLER}     //new
+var
+  Src, Dst: PCardinal;
+  i: Integer;
+
+  S, D: Cardinal;
+  sB, sG, sR, sA: Integer;
+  dB, dG, dR: Integer;
+  a: Integer;
+
+  rB, rG, rR: Integer;
+begin
+  Src := PCardinal(Source);
+  Dst := PCardinal(Destination);
+
+  for i := 0 to Count - 1 do
+  begin
+    S := Src^;
+    D := Dst^;
+
+    // Extract source BGRA
+    sB :=  S         and $FF;
+    sG := (S shr 8)  and $FF;
+    sR := (S shr 16) and $FF;
+    sA := (S shr 24) and $FF;
+
+    // Extract destination BGR (alpha preserved)
+    dB :=  D         and $FF;
+    dG := (D shr 8)  and $FF;
+    dR := (D shr 16) and $FF;
+
+    // Use source alpha per pixel
+    a := sA; // 0..255
+
+    // Blend formula: target = (alpha * (source - target) + 256 * target) / 256
+    rB := (a * (sB - dB) + (dB shl 8)) shr 8;
+    rG := (a * (sG - dG) + (dG shl 8)) shr 8;
+    rR := (a * (sR - dR) + (dR shl 8)) shr 8;
+
+    // Bias + clamp (branching)
+    rB := rB - 128 + Bias;
+    if rB < -128 then rB := -128 else if rB > 127 then rB := 127;
+    rB := rB + 128;
+
+    rG := rG - 128 + Bias;
+    if rG < -128 then rG := -128 else if rG > 127 then rG := 127;
+    rG := rG + 128;
+
+    rR := rR - 128 + Bias;
+    if rR < -128 then rR := -128 else if rR > 127 then rR := 127;
+    rR := rR + 128;
+
+    // Store result (preserve destination alpha)
+    Dst^ :=
+      (D and $FF000000) or
+      (Cardinal(rR) shl 16) or
+      (Cardinal(rG) shl 8)  or
+       Cardinal(rB);
+
+    Inc(Src);
+    Inc(Dst);
+  end;
+end;
+
+    {$ELSE}
+      {$IF defined(CPUX64)}
 // RCX contains Source
 // RDX contains Destination
 // R8D contains Count
@@ -831,23 +1286,24 @@ asm
         POP     EDI
         POP     ESI
 end;
-{$endif CPUX64}
-
+      {$ENDIF}
+    {$ENDIF !ASSEMBLER}
 //----------------------------------------------------------------------------------------------------------------------
 
 procedure EMMS;
 
 // Reset MMX state to use the FPU for other tasks again.
 
-{$ifdef CPUX64}
-  inline;
-begin
-end;
-{$else}
+{$ifdef CPUX86}
 asm
         DB      $0F, $77               /// EMMS
 end;
-{$endif CPUX64}
+{$else}
+inline;
+begin
+
+end;
+{$endif}
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -857,8 +1313,75 @@ procedure AlphaBlendLineMaster(Source, Destination: Pointer; Count: Integer; Con
 // The layout of a pixel must be BGRA.
 // ConstantAlpha must be in the range 0..255.
 // Bias is an additional value which gets added to every component and must be in the range -128..127
-//
-{$ifdef CPUX64}
+
+{$IFNDEF ASSEMBLER}
+var
+  Src, Dst: PCardinal;
+  i: Integer;
+
+  S, D: Cardinal;
+  sB, sG, sR, sA: Integer;
+  dB, dG, dR: Integer;
+  a: Integer;
+
+  rB, rG, rR: Integer;
+begin
+  Src := PCardinal(Source);
+  Dst := PCardinal(Destination);
+
+  for i := 0 to Count - 1 do
+  begin
+    S := Src^;
+    D := Dst^;
+
+    // Extract source BGRA
+    sB :=  S         and $FF;
+    sG := (S shr 8)  and $FF;
+    sR := (S shr 16) and $FF;
+    sA := (S shr 24) and $FF;
+
+    // Extract destination BGR (alpha preserved)
+    dB :=  D         and $FF;
+    dG := (D shr 8)  and $FF;
+    dR := (D shr 16) and $FF;
+
+    // Effective alpha = source alpha * master alpha / 256
+    a := (sA * ConstantAlpha) shr 8;
+
+    // Blend
+    rB := (a * (sB - dB) + (dB shl 8)) shr 8;
+    rG := (a * (sG - dG) + (dG shl 8)) shr 8;
+    rR := (a * (sR - dR) + (dR shl 8)) shr 8;
+
+    // Bias + clamp (branching, fastest on Win32)
+    rB := rB - 128 + Bias;
+    if rB < -128 then rB := -128 else
+    if rB >  127 then rB :=  127;
+    rB := rB + 128;
+
+    rG := rG - 128 + Bias;
+    if rG < -128 then rG := -128 else
+    if rG >  127 then rG :=  127;
+    rG := rG + 128;
+
+    rR := rR - 128 + Bias;
+    if rR < -128 then rR := -128 else
+    if rR >  127 then rR :=  127;
+    rR := rR + 128;
+
+    // Store result, preserve destination alpha
+    Dst^ :=
+      (D and $FF000000) or
+      (Cardinal(rR) shl 16) or
+      (Cardinal(rG) shl 8)  or
+       Cardinal(rB);
+
+    Inc(Src);
+    Inc(Dst);
+  end;
+end;
+    {$ELSE}
+      {$IF defined(CPUX64)}
 // RCX contains Source
 // RDX contains Destination
 // R8D contains Count
@@ -998,7 +1521,8 @@ asm
         POP     EDI
         POP     ESI
 end;
-{$endif CPUX64}
+      {$ENDIF}
+    {$ENDIF !ASSEMBLER}
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -1007,8 +1531,62 @@ procedure AlphaBlendLineMasterAndColor(Destination: Pointer; Count: Integer; Con
 // Blends a line of Count pixels in Destination against the given color using a constant alpha value.
 // The layout of a pixel must be BGRA and Color must be rrggbb00 (as stored by a COLORREF).
 // ConstantAlpha must be in the range 0..255.
-//
-{$ifdef CPUX64}
+
+{$IFNDEF ASSEMBLER}
+var
+  Dst: PCardinal;
+  i: Integer;
+
+  dB, dG, dR: Integer;
+  rB, rG, rR: Integer;
+
+  alpha: Integer;
+  F1B, F1G, F1R: Integer;  // color * alpha
+  F2: Integer;               // 256 - alpha
+  cR, cG, cB: Integer;
+begin
+  Dst := PCardinal(Destination);
+
+  // Extract color components (BGRA layout, Color in rrggbb00 format)
+  cR := (Color shr 16) and $FF;
+  cG := (Color shr 8)  and $FF;
+  cB :=  Color        and $FF;
+
+  // Precompute alpha factors
+  alpha := ConstantAlpha;       // 0..255
+  F2 := 256 - alpha;            // factor for destination
+  F1R := cR * alpha;            // factor for color
+  F1G := cG * alpha;
+  F1B := cB * alpha;
+
+  for i := 0 to Count - 1 do
+  begin
+    // Load destination
+    dB :=  Dst^         and $FF;
+    dG := (Dst^ shr 8)  and $FF;
+    dR := (Dst^ shr 16) and $FF;
+
+    // Blend formula: target = (F1 + F2 * target) / 256
+    rB := (F1B + F2 * dB) shr 8;
+    rG := (F1G + F2 * dG) shr 8;
+    rR := (F1R + F2 * dR) shr 8;
+
+    // Branching clamp (safe)
+    if rB < 0 then rB := 0 else if rB > 255 then rB := 255;
+    if rG < 0 then rG := 0 else if rG > 255 then rG := 255;
+    if rR < 0 then rR := 0 else if rR > 255 then rR := 255;
+
+    // Store back, preserve alpha (destination alpha unchanged)
+    Dst^ := (Dst^ and $FF000000) or
+            (Cardinal(rR) shl 16) or
+            (Cardinal(rG) shl 8)  or
+             Cardinal(rB);
+
+    Inc(Dst);
+  end;
+end;
+    {$ELSE}
+      {$IF defined(CPUX64)}
 // RCX contains Destination
 // EDX contains Count
 // R8D contains ConstantAlpha
@@ -1105,7 +1683,8 @@ asm
         DEC     EDX
         JNZ     @1
 end;
-{$endif CPUX64}
+      {$ENDIF}
+    {$ENDIF !ASSEMBLER}
 
 //----------------------------------------------------------------------------------------------------------------------
 {$ENDIF}

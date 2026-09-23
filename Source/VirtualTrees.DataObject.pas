@@ -9,8 +9,9 @@ interface
 uses
   WinApi.ActiveX,
   WinApi.Windows,
-  VirtualTrees.Types,
-  Vcl.Controls;
+  System.Classes,
+  Vcl.Controls,
+  VirtualTrees.Types;
 
 type
   IDataObject = WinApi.ActiveX.IDataObject;
@@ -26,11 +27,12 @@ type
   // This data object is used in two different places. One is for clipboard operations and the other while dragging.
   TVTDataObject = class(TInterfacedObject, IDataObject)
   private
-    FOwner: TCustomControl;            // The tree which provides clipboard or drag data.
-    FForClipboard: Boolean;            // Determines which data to render with GetData.
-    FFormatEtcArray: TFormatEtcArray;
-    FInternalStgMediumArray: TInternalStgMediumArray;  // The available formats in the DataObject
-    FAdviseHolder: IDataAdviseHolder;  // Reference to an OLE supplied implementation for advising.
+    FOwner                  : TCustomControl;          // The tree which provides clipboard or drag data.
+    FHeader                 : TPersistent;             // The tree which provides clipboard or drag data.
+    FForClipboard           : Boolean;                 // Determines which data to render with GetData.
+    FFormatEtcArray         : TFormatEtcArray;
+    FInternalStgMediumArray : TInternalStgMediumArray; // The available formats in the DataObject
+    FAdviseHolder           : IDataAdviseHolder;       // Reference to an OLE supplied implementation for advising.
   protected
     function CanonicalIUnknown(const TestUnknown: IUnknown): IUnknown;
     function EqualFormatEtc(FormatEtc1, FormatEtc2: TFormatEtc): Boolean;
@@ -45,7 +47,8 @@ type
     property InternalStgMediumArray: TInternalStgMediumArray read FInternalStgMediumArray write FInternalStgMediumArray;
     property Owner: TCustomControl read FOwner;
   public
-    constructor Create(AOwner: TCustomControl; ForClipboard: Boolean); virtual;
+    constructor Create(AOwner : TCustomControl; ForClipboard : Boolean); overload;
+    constructor Create(AHeader : TPersistent; AOwner : TCustomControl); overload;
     destructor Destroy; override;
 
     function DAdvise(const FormatEtc: TFormatEtc; advf: Integer; const advSink: IAdviseSink; out dwConnection: Integer) : HResult; virtual; stdcall;
@@ -70,7 +73,7 @@ uses
 
 type
   TVTCracker = class(TBaseVirtualTree);
-  
+
 //----------------- TVTDataObject --------------------------------------------------------------------------------------
 
 constructor TVTDataObject.Create(AOwner: TCustomControl; ForClipboard: Boolean);
@@ -79,7 +82,16 @@ begin
 
   FOwner := AOwner;
   FForClipboard := ForClipboard;
-  TVTCracker(FOwner).GetNativeClipboardFormats(FFormatEtcArray);
+  if Assigned(FOWner) then
+    TVTCracker(FOwner).GetNativeClipboardFormats(FFormatEtcArray);
+end;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+constructor TVTDataObject.Create(AHeader: TPersistent; AOwner : TCustomControl);
+begin
+  Create(AOwner, False);
+  FHeader := AHeader;
 end;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -255,19 +267,19 @@ begin
         // Don't generate a copy just use ourselves and the previously saved data.
         OutStgMedium.unkForRelease := Pointer(DataObject) // Does not increase RefCount.
       else
-        Result := DV_E_TYMED; // Don't know how to copy GDI objects right now.
+        Result := DV_E_TYMED;                             // Don't know how to copy GDI objects right now.
     TYMED_MFPICT:
       if not CopyInMedium then
         // Don't generate a copy just use ourselves and the previously saved data.
         OutStgMedium.unkForRelease := Pointer(DataObject) // Does not increase RefCount.
       else
-        Result := DV_E_TYMED; // Don't know how to copy MetaFile objects right now.
+        Result := DV_E_TYMED;                             // Don't know how to copy MetaFile objects right now.
     TYMED_ENHMF:
       if not CopyInMedium then
         // Don't generate a copy just use ourselves and the previously saved data.
         OutStgMedium.unkForRelease := Pointer(DataObject) // Does not increase RefCount.
       else
-        Result := DV_E_TYMED; // Don't know how to copy enhanced metafiles objects right now.
+        Result := DV_E_TYMED;                             // Don't know how to copy enhanced metafiles objects right now.
   else
     Result := DV_E_TYMED;
   end;
@@ -345,8 +357,22 @@ var
   I: Integer;
   Data: PVTReference;
 begin
+  // See if this is a header column drag and drop
+  if (FormatEtcIn.cfFormat = CF_VTHEADERREFERENCE) and Assigned(FHeader) then
+  begin
+    Medium.HGlobal := GlobalAlloc(GHND or GMEM_SHARE, SizeOf(TVTReference));
+    Data := GlobalLock(Medium.HGlobal);
+    Data.Process := GetCurrentProcessID;
+    Data.Tree := TBaseVirtualTree(FOwner);
+    GlobalUnLock(Medium.HGlobal);
+    Medium.tymed := TYMED_HGLOBAL;
+    Medium.unkForRelease := nil;
+    Exit(S_OK);
+  end; // if CF_VTHEADERREFERENCE
+
+
   // The tree reference format is always supported and returned from here.
-  if FormatEtcIn.cfFormat = CF_VTREFERENCE then
+  if (FormatEtcIn.cfFormat = CF_VTREFERENCE) and Assigned(FOWner) then
   begin
     // Note: this format is not used while flushing the clipboard to avoid a dangling reference
     //       when the owner tree is destroyed before the clipboard data is replaced with something else.
@@ -361,31 +387,29 @@ begin
       GlobalUnLock(Medium.HGlobal);
       Medium.tymed := TYMED_HGLOBAL;
       Medium.unkForRelease := nil;
-      Result := S_OK;
+      Exit(S_OK);
     end;
-  end
-  else
-  begin
-    try
-      // See if we accept this type and if not get the correct return value.
-      Result := QueryGetData(FormatEtcIn);
-      if Result = S_OK then
+  end; // if CF_VTREFERENCE
+
+  try
+    // See if we accept this type and if not get the correct return value.
+    Result := QueryGetData(FormatEtcIn);
+    if Result = S_OK then
+    begin
+      for I := 0 to High(FormatEtcArray) do
       begin
-        for I := 0 to High(FormatEtcArray) do
+        if EqualFormatEtc(FormatEtcIn, FormatEtcArray[I]) then
         begin
-          if EqualFormatEtc(FormatEtcIn, FormatEtcArray[I]) then
-          begin
-            if not RenderInternalOLEData(FormatEtcIn, Medium, Result) then
-              Result := TVTCracker(FOwner).RenderOLEData(FormatEtcIn, Medium, FForClipboard);
-            Break;
-          end;
+          if not RenderInternalOLEData(FormatEtcIn, Medium, Result) then
+            Result := TVTCracker(FOwner).RenderOLEData(FormatEtcIn, Medium, FForClipboard);
+          Break;
         end;
       end;
-    except
-      ZeroMemory (@Medium, SizeOf(Medium));
-      Result := E_FAIL;
     end;
-  end;
+  except
+      ZeroMemory (@Medium, SizeOf(Medium));
+    Result := E_FAIL;
+  end; // try..except
 end;
 
 //----------------------------------------------------------------------------------------------------------------------

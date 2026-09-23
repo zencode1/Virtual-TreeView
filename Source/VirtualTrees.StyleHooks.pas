@@ -33,6 +33,10 @@ interface
   {$DEFINE VT_VCL}
 {$ENDIF}
 
+{$if CompilerVersion < 34}
+  {$DEFINE NOT_USE_VCL_STYLEHOOK}  // Do not use inherited style hook but own code in this class. Needed for older Delphi versions 10.3 and below
+{$ifend}
+
 {$IFDEF VT_FMX}
 uses
   {$IFDEF MSWINDOWS}

@@ -189,7 +189,7 @@ const
 
   { GetSystemMetrics() codes }
   SM_CXVSCROLL = 2;
-  SM_CYHSCROLL = 3;
+  SM_CYHSCROLL = 3;							  
 
   EVENT_OBJECT_CREATE              = $8000;  { hwnd + ID + idChild is created item }
   EVENT_OBJECT_DESTROY             = $8001;  { hwnd + ID + idChild is destroyed item }
@@ -216,7 +216,8 @@ const
 var
   // Clipboard format IDs used in OLE drag'n drop and clipboard transfers.
   CF_VIRTUALTREE,
-  CF_VTREFERENCE,
+  CF_VTREFERENCE,       // A reference to a virtual tree
+  CF_VTHEADERREFERENCE, // drapg and drop of column headers
   CF_VRTF,
   CF_VRTFNOOBJS,   // Unfortunately CF_RTF* is already defined as being
                    // registration strings so I have to use different identifiers.
@@ -266,6 +267,8 @@ type
   LPARAM = INT_PTR;
   LRESULT = INT_PTR;
 
+  // VCL gets this type from WinApi.Messages. FMX must not depend on WinApi units, so it is declared here.
+  // Used for TVirtualNode alignment in VirtualTrees.Types (issue #1136).
   TDWordFiller = record
   {$IFDEF CPUX64}
     Filler: array[1..4] of Byte; // Pad DWORD to make it 8 bytes (4+4) [x64 only]
@@ -547,7 +550,7 @@ type
     procedure RoundRect(X1, Y1, X2, Y2: Single; const XRadius, YRadius: Single); overload;
     procedure RoundRect(const Rect: TRect; const XRadius, YRadius: Single); overload;
     procedure Polygon(const Points: TPolygon);
-    procedure Draw(const X, Y: Single; const Bitmap: TBitmap);
+    procedure Draw(const X, Y: Single; const Bitmap: TBitmap);											  
   end;
 
   TFontHelper = class helper for TFont
@@ -666,7 +669,7 @@ begin
 end;
 
 
-//----------------------------------------------------------------------------------------------------------------------																														
+//----------------------------------------------------------------------------------------------------------------------
 
 type
   TImageListHelper = class helper for TImageList

@@ -43,7 +43,9 @@ type
     property OnGetNodeWidth: TVTGetNodeWidthEvent read FOnGetNodeWidth write FOnGetNodeWidth;
   end;
 
-  [ComponentPlatformsAttribute(pidWin32 or pidWin64)]
+  {$if CompilerVersion >= 33}
+  [ComponentPlatformsAttribute(pfidWindows)]
+  {$ifend}
   TVirtualDrawTree = class(TCustomVirtualDrawTree)
   private
     function GetOptions: TVirtualTreeOptions;
@@ -183,7 +185,7 @@ type
     property OnCollapsed;
     property OnCollapsing;
     property OnColumnChecked;
-    property OnColumnChecking;							 
+    property OnColumnChecking;
     property OnColumnClick;
     property OnColumnDblClick;
     property OnColumnExport;
@@ -303,7 +305,7 @@ type
     property StyleElements;
 {$ENDIF}
   end;
-  
+
 implementation
 
 uses
@@ -381,6 +383,6 @@ initialization
 {$ENDIF}
 finalization
 {$IFDEF VT_VCL}
-  TCustomStyleEngine.UnRegisterStyleHook(TVirtualDrawTree, TVclStyleScrollBarsHook);																				  
+  TCustomStyleEngine.UnRegisterStyleHook(TVirtualDrawTree, TVclStyleScrollBarsHook);
 {$ENDIF}
 end.

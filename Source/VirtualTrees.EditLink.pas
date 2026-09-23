@@ -117,7 +117,7 @@ type
     FStopping : Boolean;                      //Set to True when the edit link requests stopping the edit action.
     FAlignment : TAlignment;
     FBiDiMode: TBiDiMode;
-								
+
     // custom event handlers
     FOnPrepareEdit: TEditLinkPrepareEditEvent;
     FOnBeginEdit,
@@ -131,7 +131,7 @@ type
     function CancelEdit : Boolean; virtual; stdcall;
     function EndEdit : Boolean; virtual; stdcall;
     function GetBounds : TRect; virtual; stdcall; abstract;
-    function PrepareEdit(Tree : TBaseVirtualTree; Node : PVirtualNode; Column : TColumnIndex) : Boolean; virtual; stdcall;	
+    function PrepareEdit(Tree : TBaseVirtualTree; Node : PVirtualNode; Column : TColumnIndex) : Boolean; virtual; stdcall;
 {$IFDEF VT_VCL}															
     procedure ProcessMessage(var Message: TMessage); virtual; stdcall; abstract;
 {$ENDIF}
@@ -156,7 +156,7 @@ type
     property OnEndEdit: TEditLinkEditEvent read FOnEndEdit write FOnEndEdit;
     property OnPrepareEdit: TEditLinkPrepareEditEvent read FOnPrepareEdit write FOnPrepareEdit;
   end;
-  
+
   // Edit link that has TWinControl-based Edit. Performs visibility and focus actions,
   // transfers window messages to Edit control.
 {$IFDEF VT_VCL}
@@ -185,6 +185,8 @@ type
     FTextBounds : TRect;                      //Smallest rectangle around the text.
     function GetEdit: TVTEdit;                //Getter for the FEdit member;
     procedure SetEdit(const Value : TVTEdit); //Setter for the FEdit member;
+
+    procedure InitializeSelection; virtual;
   public
     constructor Create;
 
@@ -213,7 +215,7 @@ uses
   , Vcl.Graphics
   , Vcl.Forms;
 {$ENDIF}
-  
+
 type
   TCustomVirtualStringTreeCracker = class(TCustomVirtualStringTree);
 
@@ -673,7 +675,7 @@ begin
 end;
 
 //----------------------------------------------------------------------------------------------------------------------
-					  
+
 procedure TBaseEditLink.DoCancelEdit(var Result: Boolean);
 begin
   if Assigned(OnCancelEdit) then
@@ -758,7 +760,7 @@ begin
 end;
 
 //----------------------------------------------------------------------------------------------------------------------
-					  
+
 function TWinControlEditLink.EndEdit: Boolean;
 begin
   Result := inherited;
@@ -786,14 +788,21 @@ end;
 
 function TStringEditLink.GetEdit: TVTEdit;
 begin
-  Result := TVTEdit(FEdit);			 
+  Result := TVTEdit(FEdit);
 end;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-procedure TStringEditLink.SetEdit(const Value: TVTEdit);
+procedure TStringEditLink.InitializeSelection;
 begin
-  inherited SetEdit(Value);			   
+  Edit.SelectAll;
+end;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+procedure TStringEditLink.SetEdit(const Value : TVTEdit);
+begin
+  inherited SetEdit(Value);
 end;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -803,7 +812,7 @@ begin
   Result := inherited;
   if Result then
   begin
-    Edit.SelectAll;
+    InitializeSelection;
     Edit.AutoAdjustSize;
   end;
 end;
@@ -845,7 +854,7 @@ var
 begin
   Result := inherited;
   if Result then
-  begin 
+  begin
     Edit := TVTEdit.Create(Self);
     Edit.Visible := False;
     Edit.BorderStyle := bsSingle;
@@ -857,7 +866,7 @@ begin
     Edit.RecreateWnd;
     Edit.AutoSize := False;
     Edit.Text := Text;
-      Edit.BidiMode := FBidiMode;
+    Edit.BidiMode := FBidiMode;
     if Edit.BidiMode <> bdLeftToRight then
       ChangeBidiModeAlignment(FAlignment);
   end;
@@ -874,9 +883,9 @@ var
 begin
   if not FStopping then
   begin
-    // Check if the provided rect height is smaller than the edit control height.
+    //Check if the provided rect height is smaller than the minimal height needed for the caret to be visible.
     Height := R.Bottom - R.Top;
-    if Height < Edit.ClientHeight then
+    if Height < Edit.CalcMinHeight then
     begin
       // If the height is smaller than the minimal height we must correct it, otherwise the caret will be invisible.
       tOffset := Edit.CalcMinHeight - Height;
@@ -907,7 +916,7 @@ begin
     // If toGridExtensions are turned on, we can fine tune the left margin (or the right margin if RTL is on)
     // of the text to exactly match the text in the tree cell.
     if (toGridExtensions in TCustomVirtualStringTreeCracker(FTree).TreeOptions.MiscOptions) and
-       ((FAlignment = taLeftJustify) and (Edit.BidiMode = bdLeftToRight) or (FAlignment = taRightJustify) and (Edit.BidiMode <> bdLeftToRight)) then
+      ((FAlignment = taLeftJustify) and (Edit.BidiMode = bdLeftToRight) or (FAlignment = taRightJustify) and (Edit.BidiMode <> bdLeftToRight)) then
     begin
       // Calculate needed text area offset.
       FTree.GetOffsets(FNode, offsets, ofsText, FColumn);

@@ -16,7 +16,7 @@ uses
   Winapi.oleacc,
   Winapi.ActiveX,
   Winapi.Messages,
-  System.Classes,			  
+  System.Classes,
   Vcl.Controls,
   Vcl.Graphics,
   Vcl.StdCtrls,
@@ -31,7 +31,7 @@ type
     FAccessibleName: string;                     // The name the window is given for screen readers.
     FDottedBrushTreeLines: TBrush;               // used to paint dotted lines without special pens
 
-    procedure WMGetObject(var Message: TMessage); message WM_GETOBJECT;					 
+    procedure WMGetObject(var Message: TMessage); message WM_GETOBJECT;
   protected // methods
     function DoRenderOLEData(const FormatEtcIn: TFormatEtc; out Medium: TStgMedium; ForClipboard: Boolean): HRESULT; virtual; abstract;
     function RenderOLEData(const FormatEtcIn: TFormatEtc; out Medium: TStgMedium; ForClipboard: Boolean): HResult; virtual;
@@ -41,16 +41,25 @@ type
     procedure SetWindowTheme(const Theme: string); virtual;
     //// Abtract method that are implemented in TBaseVirtualTree, keep in sync with TVTBaseAncestorFMX
     function GetSelectedCount(): Integer; virtual; abstract;
+
+    /// <summary>
+    /// multicell support. How many cells are selected?
+    /// </summary>
+    function GetSelectedCellCount(): Integer; virtual; abstract;
+    procedure MarkCutCopyCells; virtual; abstract;
+
     procedure MarkCutCopyNodes; virtual; abstract;
     procedure DoStateChange(Enter: TVirtualTreeStates; Leave: TVirtualTreeStates = []); virtual; abstract;
     function GetSortedCutCopySet(Resolve: Boolean): TNodeArray; virtual; abstract;
     function GetSortedSelection(Resolve: Boolean): TNodeArray; virtual; abstract;
-    procedure WriteNode(Stream: TStream; Node: PVirtualNode);  virtual; abstract;																									  
+    procedure WriteNode(Stream: TStream; Node: PVirtualNode);  virtual; abstract;
     procedure Sort(Node: PVirtualNode; Column: TColumnIndex; Direction: TSortDirection; DoInit: Boolean = True); virtual; abstract;
+    procedure DoMouseEnter(); virtual; abstract;
+    procedure DoMouseLeave(); virtual; abstract;
   protected //properties
-    property DottedBrushTreeLines: TBrush read FDottedBrushTreeLines write FDottedBrushTreeLines;													   
+    property DottedBrushTreeLines: TBrush read FDottedBrushTreeLines write FDottedBrushTreeLines;
   public // methods
-    destructor Destroy; override;								 
+    destructor Destroy; override;
     procedure CopyToClipboard(); virtual;
     procedure CutToClipboard(); virtual;
     function PasteFromClipboard: Boolean; virtual; abstract;
@@ -281,6 +290,20 @@ var
   lDataObject: IDataObject;
 
 begin
+  // multicell support copy
+  if GetSelectedCellCount > 0 then
+  begin
+    lDataObject := TVTDataObject.Create(Self, True);
+    if OleSetClipboard(lDataObject) = S_OK then
+    begin
+      MarkCutCopyCells;
+      DoStateChange([tsCopyPending]);
+      Invalidate;
+    end;
+    Exit;
+  end;
+
+  // regular fullrow copy
   if GetSelectedCount > 0 then
   begin
     lDataObject := TVTDataObject.Create(Self, True);

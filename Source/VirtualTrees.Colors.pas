@@ -49,7 +49,7 @@ type
     // have the same color if you change anything here!
   const
     cDefaultColors : array [TVTColorEnum] of TColor = (
-	    clBtnShadow,            //DisabledColor
+	  clBtnShadow,            //DisabledColor
       clHighlight,            //DropMarkColor
       clHighlight,            //DropTargetColor
       clHighlight,            //FocusedSelectionColor
@@ -65,7 +65,7 @@ type
       clHighlight,            //SelectionRectangleBorderColor
       clBtnShadow,            //HeaderHotColor
       clHighlightText,        //SelectionTextColor
-      clInactiveCaptionText //UnfocusedColor  [IPK]
+      clInactiveCaptionText   //UnfocusedColor  [IPK]
     );
   private
     FOwner: TCustomControl;
@@ -88,30 +88,31 @@ type
     function StyleServices(AControl : TControl = nil) : TCustomStyleServices;
     {$ENDIF}
   published
-    property BorderColor: TColor index cBorderColor read GetColor write SetColor default clBtnFace;
-    property DisabledColor: TColor index cDisabledColor read GetColor write SetColor default clBtnShadow;
-    property DropMarkColor: TColor index cDropMarkColor read GetColor write SetColor default clHighlight;
-    property DropTargetColor: TColor index cDropTargetColor read GetColor write SetColor default clHighlight;
-    property DropTargetBorderColor: TColor index cDropTargetBorderColor read GetColor write SetColor default clHighlight;
-    /// The background color of selected nodes in case the tree has the focus, or the toPopupMode flag is set.
-    property FocusedSelectionColor: TColor index cFocusedSelectionColor read GetColor write SetColor default clHighlight;
-    /// The border color of selected nodes when the tree has the focus.
-    property FocusedSelectionBorderColor: TColor index cFocusedSelectionBorderColor read GetColor write SetColor default clHighlight;
-    property GridLineColor: TColor index cGridLineColor read GetColor write SetColor default clBtnFace;
-    property HeaderHotColor: TColor index cHeaderHotColor read GetColor write SetColor default clBtnShadow;
-    property HotColor: TColor index cHotColor read GetColor write SetColor default clWindowText;
-    property SelectionRectangleBlendColor: TColor index cSelectionRectangleBlendColor read GetColor write SetColor default clHighlight;
-    property SelectionRectangleBorderColor: TColor index cSelectionRectangleBorderColor read GetColor write SetColor default clHighlight;
-    /// The text color of selected nodes
-    property SelectionTextColor: TColor index cSelectionTextColor read GetColor write SetColor default clHighlightText;
-    property TreeLineColor: TColor index cTreeLineColor read GetColor write SetColor default clBtnShadow;
-    property UnfocusedColor: TColor index cUnfocusedColor read GetColor write SetColor default clInactiveCaptionText; // [IPK] Added
-    /// The background color of selected nodes in case the tree does not have the focus and the toPopupMode flag is not set.
-    property UnfocusedSelectionColor: TColor index cUnfocusedSelectionColor read GetColor write SetColor default clInactiveCaption;
-    /// The border color of selected nodes in case the tree does not have the focus and the toPopupMode flag is not set.
-    property UnfocusedSelectionBorderColor: TColor index cUnfocusedSelectionBorderColor read GetColor write SetColor default clInactiveCaption;
+    property BorderColor                   : TColor index cBorderColor read GetColor write SetColor default clBtnFace;
+    property DisabledColor                 : TColor index cDisabledColor read GetColor write SetColor default clBtnShadow;
+    property DropMarkColor                 : TColor index cDropMarkColor read GetColor write SetColor default clHighlight;
+    property DropTargetColor               : TColor index cDropTargetColor read GetColor write SetColor default clHighlight;
+    property DropTargetBorderColor         : TColor index cDropTargetBorderColor read GetColor write SetColor default clHighlight;
+    ///The background color of selected nodes in case the tree has the focus, or the toPopupMode flag is set.
+    property FocusedSelectionColor         : TColor index cFocusedSelectionColor read GetColor write SetColor default clHighlight;
+    ///The border color of selected nodes when the tree has the focus.
+    property FocusedSelectionBorderColor   : TColor index cFocusedSelectionBorderColor read GetColor write SetColor default clHighlight;
+    ///The color of the grid lines
+    property GridLineColor                 : TColor index cGridLineColor read GetColor write SetColor default clBtnFace;
+    property HeaderHotColor                : TColor index cHeaderHotColor read GetColor write SetColor default clBtnShadow;
+    property HotColor                      : TColor index cHotColor read GetColor write SetColor default clWindowText;
+    property SelectionRectangleBlendColor  : TColor index cSelectionRectangleBlendColor read GetColor write SetColor default clHighlight;
+    property SelectionRectangleBorderColor : TColor index cSelectionRectangleBorderColor read GetColor write SetColor default clHighlight;
+    ///The text color of selected nodes
+    property SelectionTextColor            : TColor index cSelectionTextColor read GetColor write SetColor default clHighlightText;
+    property TreeLineColor                 : TColor index cTreeLineColor read GetColor write SetColor default clBtnShadow;
+    property UnfocusedColor                : TColor index cUnfocusedColor read GetColor write SetColor default clInactiveCaptionText; //[IPK] Added
+    ///The background color of selected nodes in case the tree does not have the focus and the toPopupMode flag is not set.
+    property UnfocusedSelectionColor       : TColor index cUnfocusedSelectionColor read GetColor write SetColor default clInactiveCaption;
+    ///The border color of selected nodes in case the tree does not have the focus and the toPopupMode flag is not set.
+    property UnfocusedSelectionBorderColor : TColor index cUnfocusedSelectionBorderColor read GetColor write SetColor default clInactiveCaption;
   end;
-  
+
 implementation
 {$IFDEF VT_FMX}
 uses
