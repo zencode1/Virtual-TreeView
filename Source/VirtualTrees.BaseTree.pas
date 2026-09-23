@@ -415,6 +415,11 @@ type
     function GetNext(Node: PVirtualNode): PVirtualNode;
   end;
 
+  TVTPreparedBackground = record
+    Bitmap: TBitmap;
+    BackgroundColor: TColor;
+    Transparent: Boolean;
+  end;
 
   // ----- TBaseVirtualTree
   TBaseVirtualTree = class abstract(TVTBaseAncestor)
@@ -475,6 +480,7 @@ type
     FTempNodeCache: TNodeArray;                  // used at various places to hold temporarily a bunch of node refs.
     FTempNodeCount: Cardinal;                    // number of nodes in FTempNodeCache
     FBackground: TVTBackground;                  // A background image loadable at design and runtime.
+    FBackgroundPrepared: TVTPreparedBackground;  // Prepared background image and settings used when it was created.
     FBackgroundImageTransparent: Boolean;        // By default, this is off. When switched on, will try to draw the image
                                                  // transparent by using the color of the component as transparent color
 
@@ -762,6 +768,7 @@ type
     procedure CMParentDoubleBufferedChange(var Message: TMessage); message CM_PARENTDOUBLEBUFFEREDCHANGED;
 {$ENDIF}
     procedure AdjustTotalCount(Node: PVirtualNode; Value: Integer; relative: Boolean = False);
+    procedure BackgroundPictureChanged(Sender: TObject);
     function CalculateCacheEntryCount: Integer;
     procedure CalculateVerticalAlignments(var PaintInfo: TVTPaintInfo; var VButtonAlign: TDimension);
     function ChangeCheckState(Node: PVirtualNode; Value: TCheckState): Boolean;
@@ -776,6 +783,7 @@ type
     function FindInPositionCache(Position: TDimension; var CurrentPos: TNodeHeight): PVirtualNode; overload;
     procedure FixupTotalCount(Node: PVirtualNode);
     procedure FixupTotalHeight(Node: PVirtualNode);
+    function GetBackgroundBitmap(Source: TVTBackground; aBkgColor: TColor): TBitmap;
     function GetBottomNode: PVirtualNode;
     function GetCheckState(Node: PVirtualNode): TCheckState;
     function GetCheckType(Node: PVirtualNode): TCheckType;
@@ -2387,6 +2395,8 @@ begin
   FAutoScrollInterval := 1;
 
   FBackground := TVTBackground.Create;
+  FBackground.OnChange := BackgroundPictureChanged;
+
   // Similar to the Transparent property of TImage,
   // this flag is Off by default.
   FBackGroundImageTransparent := False;
@@ -2458,6 +2468,7 @@ begin
   Clear;
   FColors.Free;
   FBackground.Free;
+  FreeAndNil(FBackgroundPrepared.Bitmap);
 
   if CheckImageKind = ckSystemDefault then
     FCheckImages.Free;
@@ -2565,6 +2576,21 @@ begin
   end;
 
   UpdateVerticalRange;
+end;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+procedure TBaseVirtualTree.BackgroundPictureChanged(Sender: TObject);
+
+// Invalidates the prepared background image whenever the background picture changes.
+
+// Note: If Background's bitmap pixels are modified directly (ScanLine, a raw HBITMAP/HDC, or any
+// GDI call that bypasses TCanvas), OnChange is not called.  The cached FBackgroundPrepared image
+// will keep showing the previously prepared image.  In such cases, reassign the Background to
+// force an OnChange so it can be re-prepared.
+
+begin
+  FreeAndNil(FBackgroundPrepared.Bitmap);
 end;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -3442,6 +3468,32 @@ begin
       Child := Child.NextSibling;
     end;
   end;
+end;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+function TBaseVirtualTree.GetBackgroundBitmap(Source: TVTBackground; aBkgColor: TColor): TBitmap;
+
+// Prepares and returns the background bitmap ready to be drawn.  Creates a new bitmap if it
+// hasn't been created yet or if preparation settings have changed.
+
+var
+  bkgColor: TColor;
+
+begin
+  bkgColor := ColorToRGB(aBkgColor);
+  if Assigned(FBackgroundPrepared.Bitmap) and
+     (FBackgroundPrepared.BackgroundColor = bkgColor) and
+     (FBackgroundPrepared.Transparent = FBackGroundImageTransparent) then
+    Exit(FBackgroundPrepared.Bitmap);
+
+  FreeAndNil(FBackgroundPrepared.Bitmap);
+  FBackgroundPrepared.Bitmap := TBitmap.Create;
+
+  PrepareBackGroundPicture(Source, FBackgroundPrepared.Bitmap, Source.Width, Source.Height, bkgColor);
+  FBackgroundPrepared.BackgroundColor := bkgColor;
+  FBackgroundPrepared.Transparent := FBackGroundImageTransparent;
+  Result := FBackgroundPrepared.Bitmap;
 end;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -6094,11 +6146,9 @@ var
   DrawRect: TRect;
   DrawingBitmap: TBitmap;
 begin
-  DrawingBitmap := TBitmap.Create;
-  try
-    // clear background
-    Target.Brush.Color := aBkgColor;
-    Target.FillRect(R);
+  // clear background
+  Target.Brush.Color := aBkgColor;
+  Target.FillRect(R);
 
   // Picture rect in relation to client viewscreen.
   PicRect := Rect(FBackgroundOffsetX, FBackgroundOffsetY, FBackgroundOffsetX + Source.Width, FBackgroundOffsetY + Source.Height);
@@ -6109,22 +6159,20 @@ begin
   // If picture falls in AreaRect, return intersection (DrawRect).
   if IntersectRect(DrawRect, PicRect, AreaRect) then
   begin
-      PrepareBackGroundPicture(Source, DrawingBitmap, Source.Width, Source.Height, aBkgColor);
-      // copy image to destination
+    DrawingBitmap := GetBackgroundBitmap(Source, aBkgColor);
+
+    // copy image to destination
 {$IFDEF VT_FMX}
-      Target.DrawBitmap(DrawingBitmap
-        ,Rect(DrawRect.Left - OffsetPosition.X, DrawRect.Top - OffsetPosition.Y, (DrawRect.Right - OffsetPosition.X) - (DrawRect.Left - OffsetPosition.X), (DrawRect.Bottom - OffsetPosition.Y) - (DrawRect.Top - OffsetPosition.Y) + R.Top)
-        ,Rect(DrawRect.Left - PicRect.Left, DrawRect.Top - PicRect.Top, DrawRect.Left+DrawRect.Width, DrawRect.Top + DrawRect.Height)
-        , 1.0
-        );
+    Target.DrawBitmap(DrawingBitmap,
+      Rect(DrawRect.Left - OffsetPosition.X, DrawRect.Top - OffsetPosition.Y, (DrawRect.Right - OffsetPosition.X) - (DrawRect.Left - OffsetPosition.X), (DrawRect.Bottom - OffsetPosition.Y) - (DrawRect.Top - OffsetPosition.Y) + R.Top),
+      Rect(DrawRect.Left - PicRect.Left, DrawRect.Top - PicRect.Top, DrawRect.Left+DrawRect.Width, DrawRect.Top + DrawRect.Height),
+      1.0
+      );
 {$ELSE}
-      BitBlt(Target.Handle, DrawRect.Left - OffsetPosition.X, DrawRect.Top - OffsetPosition.Y, (DrawRect.Right - OffsetPosition.X) - (DrawRect.Left - OffsetPosition.X),
+    BitBlt(Target.Handle, DrawRect.Left - OffsetPosition.X, DrawRect.Top - OffsetPosition.Y, (DrawRect.Right - OffsetPosition.X) - (DrawRect.Left - OffsetPosition.X),
       (DrawRect.Bottom - OffsetPosition.Y) - (DrawRect.Top - OffsetPosition.Y) + R.Top, DrawingBitmap.Canvas.Handle, DrawRect.Left - PicRect.Left, DrawRect.Top - PicRect.Top,
-        SRCCOPY);
+      SRCCOPY);
 {$ENDIF}
-    end;
-  finally
-    DrawingBitmap.Free;
   end;
 end;
 
@@ -6175,62 +6223,58 @@ var
   RSrc, RDest: TRect;
 {$ENDIF}
 begin
-  DrawingBitmap := TBitmap.Create;
-  try
-    PrepareBackGroundPicture(Source, DrawingBitmap, Source.Width, Source.Height, aBkgColor);
-    with Target do
+  DrawingBitmap := GetBackgroundBitmap(Source, aBkgColor);
+
+  with Target do
+  begin
+    {$IFDEF VT_FMX}
+    SourceY := FMod((R.Top + Offset.Y + FBackgroundOffsetY), Source.Height);
+    {$ELSE}
+    SourceY := (R.Top + Offset.Y + FBackgroundOffsetY) mod Source.Height;
+    {$ENDIF}
+    // Always wrap the source coordinates into positive range.
+    if SourceY < 0 then
+      SourceY := Source.Height + SourceY;
+
+    // Tile image vertically until target rect is filled.
+    while R.Top < R.Bottom do
     begin
       {$IFDEF VT_FMX}
-      SourceY := FMod((R.Top + Offset.Y + FBackgroundOffsetY), Source.Height);
+      SourceX := FMod((R.Left + Offset.X + FBackgroundOffsetX), Source.Width);
       {$ELSE}
-      SourceY := (R.Top + Offset.Y + FBackgroundOffsetY) mod Source.Height;
+      SourceX := (R.Left + Offset.X + FBackgroundOffsetX) mod Source.Width;
       {$ENDIF}
-      // Always wrap the source coordinates into positive range.
-      if SourceY < 0 then
-        SourceY := Source.Height + SourceY;
+      // always wrap the source coordinates into positive range
+      if SourceX < 0 then
+        SourceX := Source.Width + SourceX;
 
-      // Tile image vertically until target rect is filled.
-      while R.Top < R.Bottom do
+      TargetX := R.Left;
+      // height of strip to draw
+      DeltaY := Min(R.Bottom - R.Top, Source.Height - SourceY);
+
+      // tile the image horizontally
+      while TargetX < R.Right do
       begin
         {$IFDEF VT_FMX}
-        SourceX := FMod((R.Left + Offset.X + FBackgroundOffsetX), Source.Width);
+        RSrc:= Rect(TargetX, R.Top, TargetX + Min(R.Right - TargetX, Source.Width - SourceX), R.Top+DeltaY);
+        RDest:= Rect(SourceX, SourceY, SourceX + Min(R.Right - TargetX, Source.Width - SourceX), SourceY+R.Top+DeltaY);
+
+        Target.DrawBitmap(//###!!!
+              DrawingBitmap
+              , RSrc
+              , RDest
+              , 1.0
+              );
         {$ELSE}
-        SourceX := (R.Left + Offset.X + FBackgroundOffsetX) mod Source.Width;
+        BitBlt(Handle, TargetX, R.Top, Min(R.Right - TargetX, Source.Width - SourceX), DeltaY,
+          DrawingBitmap.Canvas.Handle, SourceX, SourceY, SRCCOPY);
         {$ENDIF}
-        // always wrap the source coordinates into positive range
-        if SourceX < 0 then
-          SourceX := Source.Width + SourceX;
-
-        TargetX := R.Left;
-        // height of strip to draw
-        DeltaY := Min(R.Bottom - R.Top, Source.Height - SourceY);
-
-        // tile the image horizontally
-        while TargetX < R.Right do
-        begin
-          {$IFDEF VT_FMX}
-          RSrc:= Rect(TargetX, R.Top, TargetX + Min(R.Right - TargetX, Source.Width - SourceX), R.Top+DeltaY);
-          RDest:= Rect(SourceX, SourceY, SourceX + Min(R.Right - TargetX, Source.Width - SourceX), SourceY+R.Top+DeltaY);
-
-          Target.DrawBitmap(//###!!!
-                DrawingBitmap
-                , RSrc
-                , RDest
-                , 1.0
-                );
-          {$ELSE}
-          BitBlt(Handle, TargetX, R.Top, Min(R.Right - TargetX, Source.Width - SourceX), DeltaY,
-            DrawingBitmap.Canvas.Handle, SourceX, SourceY, SRCCOPY);
-          {$ENDIF}
-          Inc(TargetX, Source.Width - SourceX);
-          SourceX := 0;
-        end;
-        Inc(R.Top, Source.Height - SourceY);
-        SourceY := 0;
+        Inc(TargetX, Source.Width - SourceX);
+        SourceX := 0;
       end;
+      Inc(R.Top, Source.Height - SourceY);
+      SourceY := 0;
     end;
-  finally
-    DrawingBitmap.Free;
   end;
 end;
 
