@@ -161,6 +161,18 @@ type
     procedure Clear;
   end;
 
+// ContentToRTF() writes A4 landscape for users with a metric locale and US Letter landscape otherwise,
+// so the expected RTF must follow the same rule for the tests to pass independent of the locale.
+function ExpectedRTFPaperFormat: string;
+var
+  LocaleBuffer: array [0..1] of Char;
+begin
+  if (GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_IMEASURE, @LocaleBuffer[0], Length(LocaleBuffer)) <> 0) and (LocaleBuffer[0] = '0'{metric}) then
+    Result := '\paperw16840\paperh11907'
+  else
+    Result := '\paperw15840\paperh12240';
+end;
+
 { TRowData }
 
 procedure TRowData.Clear;
@@ -837,7 +849,7 @@ begin
     end;
     // End unnecessary stuff
   until (LText <> '') or (LTries > MaxTries);
-  LExpected := '{\rtf1\ansi\ansicpg1252\deff0\deflang1043{\fonttbl{\f0 Tahoma;}}{\colortbl;\red0\green0\blue0;}\paperw16840\paperh11907\margl720\margr720\margt720\margb720\uc1\trowd\trgaph70\cellx750\cellx1500\cellx2250\pard\intbl\ql\f0\cf1'+
+  LExpected := '{\rtf1\ansi\ansicpg1252\deff0\deflang1043{\fonttbl{\f0 Tahoma;}}{\colortbl;\red0\green0\blue0;}'+ExpectedRTFPaperFormat+'\margl720\margr720\margt720\margb720\uc1\trowd\trgaph70\cellx750\cellx1500\cellx2250\pard\intbl\ql\f0\cf1'+
   '\fs16 \u99\''3f\u111\''3f\u108\''3f\u50\''3f\cell\ql \u99\''3f\u111\''3f\u108\''3f\u51\''3f\cell\ql \u99\''3f\u111\''3f\u108\''3f\u52\''3f\cell\row\pard\intbl \u51\''3f\u98\''3f\cell\pard\intbl \u51\''3f\u99\''3f\cell\pard\intbl \u51\''3f'+
   '\u100\''3f\cell\row'#$D#$A'\pard\intbl \u52\''3f\u98\''3f\cell\pard\intbl \u52\''3f\u99\''3f\cell\pard\intbl \u52\''3f\u100\''3f\cell\row'#$D#$A'\pard\par}';
   FRichEdit.SelText := LText;
@@ -891,7 +903,7 @@ begin
     end;
     // End unnecessary stuff
   until (LText <> '') or (LTries > MaxTries);
-  LExpected := '{\rtf1\ansi\ansicpg1252\deff0\deflang1043{\fonttbl{\f0 Tahoma;}}{\colortbl;\red0\green0\blue0;}\paperw16840\paperh11907\margl720\margr720\margt720\margb720\uc1\trowd\trgaph70\cellx750\cellx1500\cellx2250\pard\intbl\ql\f0\cf1\fs16 \u99\''3f\u111\''3f\u108\''3' +
+  LExpected := '{\rtf1\ansi\ansicpg1252\deff0\deflang1043{\fonttbl{\f0 Tahoma;}}{\colortbl;\red0\green0\blue0;}'+ExpectedRTFPaperFormat+'\margl720\margr720\margt720\margb720\uc1\trowd\trgaph70\cellx750\cellx1500\cellx2250\pard\intbl\ql\f0\cf1\fs16 \u99\''3f\u111\''3f\u108\''3' +
   'f\u50\''3f\cell\ql \u99\''3f\u111\''3f\u108\''3f\u51\''3f\cell\ql \u99\''3f\u111\''3f\u108\''3f\u52\''3f\cell\row\pard\intbl \u51\''3f\u98\''3f\cell\pard\intbl \u51\''3f\u99\''3f\cell\pard\intbl \u51\''3f\u100\''3f\cell\row' + sLineBreak +
   '\pard\intbl \u52\''3f\u98\''3f\cell\pard\intbl \u52\''3f\u99\''3f\cell\pard\intbl \u52\''3f\u100\''3f\cell\row' + sLineBreak +
   '\pard\intbl \u53\''3f\u98\''3f\cell\pard\intbl \u53\''3f\u99\''3f\cell\pard\intbl \u53\''3f\u100\''3f\cell\row' + sLineBreak +
