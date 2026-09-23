@@ -80,6 +80,9 @@ procedure ClipCanvas(Canvas: TCanvas; ClipRect: TRect; VisibleRegion: HRGN = 0);
 procedure DrawImage(ImageList: TCustomImageList; Index: Integer; Canvas: TCanvas; X, Y: Integer; Style: Cardinal; Enabled: Boolean);
 {$ENDIF}
 
+{$IFDEF VT_FMX}
+function ColorToRGB(Color: TColor) : Longint;
+{$ENDIF VT_FMX}
 
 /// <summary>
 /// Adjusts the given string S so that it fits into the given width. EllipsisWidth gives the width of
@@ -298,6 +301,14 @@ begin
 end;
 {$ENDIF}
 
+//----------------------------------------------------------------------------------------------------------------------
+
+{$IFDEF VT_FMX}
+function ColorToRGB(Color: TColor) : Longint;
+begin
+  Result := TAlphaColorRec(Color).Color;
+end;
+{$ENDIF VT_FMX}
 
 //----------------------------------------------------------------------------------------------------------------------
 
