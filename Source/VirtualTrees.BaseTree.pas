@@ -4951,6 +4951,13 @@ begin
     Value := cInitialDefaultNodeHeight;
   if FDefaultNodeHeight <> Value then
   begin
+    // The root node is only created in AfterConstruction(). If the value is set before that, e.g. by the
+    // constructor of TVTAncestorFMX, just store it. InitRootNode() applies it to the root node.
+    if FRoot = nil then
+    begin
+      FDefaultNodeHeight := Value;
+      Exit;
+    end;
 	if (Parent <> nil) and (toAutoChangeScale in TreeOptions.AutoOptions) then
       HandleNeeded(); // Create window handle and font proactively to prevent any unintended rescaling in AutoChnageScale(). See issue #1341
     Inc(FRoot.TotalHeight, Value - FDefaultNodeHeight);
